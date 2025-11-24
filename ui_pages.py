@@ -1,3 +1,4 @@
+# ui_pages.py
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 import pandas as pd
@@ -9,31 +10,15 @@ import random
 import re
 import os
 
+from utils import normalize_phone
+from logic_worker import thread_safe_askstring, thread_safe_update_label
+
 # Window size chosen: 1366 x 768 (not too tall)
 WINDOW_W = 1366
 WINDOW_H = 768
 
-# Utility: normalize phone numbers
-def normalize_phone(raw):
-    if raw is None or (isinstance(raw, float) and pd.isna(raw)):
-        return None
-    s = str(raw).strip()
-    if s.startswith('+'):
-        digits = re.sub(r'\D', '', s[1:])
-        return '+' + digits if digits else None
-    digits = re.sub(r'\D', '', s)
-    if not digits:
-        return None
-    if digits.startswith('0'):
-        return '+62' + digits[1:]
-    if digits.startswith('62'):
-        return '+' + digits
-    if digits.startswith('8'):
-        return '+62' + digits
-    return '+' + digits
-
 # Predefined status pengambilan dropdown options (you can edit)
-STATUS_PENG_OPTIONS = ["", "BELUM DIAMBIL", "SUDAH DIAMBIL", "BELUM", "SUDAH"]
+STATUS_PENG_OPTIONS = ["", "BELUM DIAMBIL", "SUDAH DIAMBIL", "PERLU CATATAN", "BELUM", "SUDAH"]
 
 class WATemplateSenderApp(tk.Tk):
     def __init__(self):
@@ -133,7 +118,6 @@ class WATemplateSenderApp(tk.Tk):
         box.pack(expand=True)
 
         # Big buttons (enlarged)
-        btn_style_options = {"width": 30, "padding": (20, 20)}
         btn_gsheet = ttk.Button(box, text="Google Sheets", command=lambda: self._select_source_and_continue("gsheet"))
         btn_excel = ttk.Button(box, text="Excel (.xlsx)", command=lambda: self._select_source_and_continue("excel"))
 
@@ -260,9 +244,16 @@ class WATemplateSenderApp(tk.Tk):
         self.delay_max.insert(0, "5")
         self.delay_max.grid(row=0, column=3, sticky="w")
 
-        # Template area
-        tk.Label(p, text="Template pesan (pakai {nama}, {no_hp}, {alamat}):").pack(anchor="w", padx=12)
-        self.template_text = tk.Text(p, height=10)
+        # --- SPLIT LEFT (Template) & RIGHT (Log) ---
+        split_frame = tk.Frame(p)
+        split_frame.pack(fill="both", expand=True, padx=12, pady=6)
+
+        # ========== LEFT: Template Pesan ==========
+        left_frame = tk.Frame(split_frame)
+        left_frame.pack(side="left", fill="both", expand=True)
+
+        tk.Label(left_frame, text="Template pesan (pakai {nama}, {no_hp}, {alamat}):").pack(anchor="w")
+        self.template_text = tk.Text(left_frame, height=3, width=50)
         default_template = (
             "Selamat Pagi, Saya dari pihak Iconnet ingin melakukan Dismantle/Penarikan Modem, mohon maaf jika pesan ini "
             "sudah pernah terkirim sebelumnya. Dikarenakan adanya kesalahan teknis yang menyebabkan pelanggan dihubungi lebih dari sekali.\n\n"
@@ -270,7 +261,15 @@ class WATemplateSenderApp(tk.Tk):
             "Apakah anda sedang ada ditempat, atau kami bisa mendapatkan waktu lain untuk pengambilan modem?\nTerima kasih atas perhatian dan kerja samanya🙏"
         )
         self.template_text.insert("1.0", default_template)
-        self.template_text.pack(fill="x", padx=12, pady=(6,8))
+        self.template_text.pack(fill="both", expand=True, pady=(0, 6))
+
+        # ========== RIGHT: Log Area ==========
+        right_frame = tk.Frame(split_frame)
+        right_frame.pack(side="left", fill="both", expand=True, padx=(12,0))
+
+        tk.Label(right_frame, text="Log / Preview:").pack(anchor="w")
+        self.log_text = tk.Text(right_frame, height=3, width=50)
+        self.log_text.pack(fill="both", expand=True)
 
         # Buttons large
         btns_frame = tk.Frame(p)
@@ -291,18 +290,17 @@ class WATemplateSenderApp(tk.Tk):
         self.status_label = tk.Label(prog_frame, text="Idle")
         self.status_label.pack(side="left", padx=12)
 
-        # Log area
-        log_frame = tk.Frame(p)
-        log_frame.pack(fill="both", expand=True, padx=12, pady=6)
-        tk.Label(log_frame, text="Log / Preview:").pack(anchor="w")
-        self.log_text = tk.Text(log_frame)
-        self.log_text.pack(fill="both", expand=True)
+        # Statistik bawah (buat 1x saja)
+        self.stat_label = tk.Label(p, text="Success: 0 | Fail: 0 | Skipped: 0",
+                                   font=("Arial", 10), fg="white", bg="#333")
+        self.stat_label.pack(fill="x", padx=12, pady=(0, 6))
 
-        # bottom stats
-        bottom = tk.Frame(p)
-        bottom.pack(fill="x", padx=12, pady=(4,12))
-        self.stat_label = tk.Label(bottom, text="Success: 0 | Fail: 0 | Skipped: 0")
-        self.stat_label.pack(side="right")
+        # # Log area
+        # log_frame = tk.Frame(p)
+        # log_frame.pack(fill="both", expand=True, padx=12, pady=6)
+        # tk.Label(log_frame, text="Log / Preview:").pack(anchor="w")
+        # self.log_text = tk.Text(log_frame)
+        # self.log_text.pack(fill="both", expand=True)
 
     # ---------------------------
     # Navigation helpers
@@ -493,7 +491,7 @@ class WATemplateSenderApp(tk.Tk):
         # filters from UI
         filter_status_val = None
         if self.cmb_status.get().strip():
-            filter_status_val = simpledialog.askstring("Filter", f"Enter value to filter column '{self.cmb_status.get()}': (leave blank = no filter)")
+            filter_status_val = thread_safe_askstring(self, "Filter", f"Enter value to filter column '{self.cmb_status.get()}': (leave blank = no filter)")
         filter_status_peng_val = self.filter_status_peng_combo.get().strip()
 
         try:
@@ -614,18 +612,11 @@ class WATemplateSenderApp(tk.Tk):
             self.btn_load_gs.configure(state="normal")
 
     def _update_stats(self):
-        self.stat_label.config(text=f"Success: {self.success} | Fail: {self.fail} | Skipped: {self.skipped}")
+        # Thread-safe update (do not recreate widgets here)
+        thread_safe_update_label(self, self.stat_label,
+                                 f"Success: {self.success} | Fail: {self.fail} | Skipped: {self.skipped}")
 
     def log(self, msg):
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
         self.log_text.insert("end", f"[{ts}] {msg}\n")
         self.log_text.see("end")
-
-# ---------------------------
-# Run
-# ---------------------------
-if __name__ == "__main__":
-    # Ensure required packages present (user should install if missing)
-    # pip install pandas requests pywhatkit openpyxl
-    app = WATemplateSenderApp()
-    app.mainloop()
