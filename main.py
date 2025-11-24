@@ -1,22 +1,3 @@
-#!/usr/bin/env python3
-# wa_template_sender_final.py
-#
-# GUI WA Template Sender (Tkinter native)
-# Features:
-#  - 3-page flow: Welcome -> Source Selection -> Main App
-#  - Source selection on page 2 chooses mode for page 3:
-#      * Excel: browse file & sheet picker
-#      * Google Sheets: API_KEY & SPREADSHEET_ID & sheet list
-#  - Mapping kolom manual (Nama, No HP, Alamat, Status, Status Pengambilan)
-#  - Status Pengambilan: dropdown choices (A option)
-#  - Preview, Start/Stop, Progress, Log
-#  - Normalize phone numbers
-#
-# Image refs (uploaded by user) - local paths (will be used as "urls" per request)
-IMAGE_PATH_1 = '/mnt/data/225ed5e8-505d-4a09-bc96-30065aaef279.png'
-IMAGE_PATH_2 = '/mnt/data/db9b840e-189e-47b5-80e2-27884ad49cb2.png'
-IMAGE_PATH_3 = '/mnt/data/fd619140-0a17-4bf2-bdf2-89f4eadecc4b.png'
-
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 import pandas as pd
@@ -279,9 +260,16 @@ class WATemplateSenderApp(tk.Tk):
         self.delay_max.insert(0, "5")
         self.delay_max.grid(row=0, column=3, sticky="w")
 
-        # Template area
-        tk.Label(p, text="Template pesan (pakai {nama}, {no_hp}, {alamat}):").pack(anchor="w", padx=12)
-        self.template_text = tk.Text(p, height=10)
+        # --- SPLIT LEFT (Template) & RIGHT (Log) ---
+        split_frame = tk.Frame(p)
+        split_frame.pack(fill="both", expand=True, padx=12, pady=6)
+
+        # ========== LEFT: Template Pesan ==========
+        left_frame = tk.Frame(split_frame)
+        left_frame.pack(side="left", fill="both", expand=True)
+
+        tk.Label(left_frame, text="Template pesan (pakai {nama}, {no_hp}, {alamat}):").pack(anchor="w")
+        self.template_text = tk.Text(left_frame, height=7, width=50)
         default_template = (
             "Selamat Pagi, Saya dari pihak Iconnet ingin melakukan Dismantle/Penarikan Modem, mohon maaf jika pesan ini "
             "sudah pernah terkirim sebelumnya. Dikarenakan adanya kesalahan teknis yang menyebabkan pelanggan dihubungi lebih dari sekali.\n\n"
@@ -289,7 +277,15 @@ class WATemplateSenderApp(tk.Tk):
             "Apakah anda sedang ada ditempat, atau kami bisa mendapatkan waktu lain untuk pengambilan modem?\nTerima kasih atas perhatian dan kerja samanya🙏"
         )
         self.template_text.insert("1.0", default_template)
-        self.template_text.pack(fill="x", padx=12, pady=(6,8))
+        self.template_text.pack(fill="both", expand=True, pady=(0, 6))
+
+        # ========== RIGHT: Log Area ==========
+        right_frame = tk.Frame(split_frame)
+        right_frame.pack(side="left", fill="both", expand=True, padx=(12,0))
+
+        tk.Label(right_frame, text="Log / Preview:").pack(anchor="w")
+        self.log_text = tk.Text(right_frame, height=7, width=50)
+        self.log_text.pack(fill="both", expand=True)
 
         # Buttons large
         btns_frame = tk.Frame(p)
@@ -310,18 +306,12 @@ class WATemplateSenderApp(tk.Tk):
         self.status_label = tk.Label(prog_frame, text="Idle")
         self.status_label.pack(side="left", padx=12)
 
-        # Log area
-        log_frame = tk.Frame(p)
-        log_frame.pack(fill="both", expand=True, padx=12, pady=6)
-        tk.Label(log_frame, text="Log / Preview:").pack(anchor="w")
-        self.log_text = tk.Text(log_frame)
-        self.log_text.pack(fill="both", expand=True)
-
-        # bottom stats
-        bottom = tk.Frame(p)
-        bottom.pack(fill="x", padx=12, pady=(4,12))
-        self.stat_label = tk.Label(bottom, text="Success: 0 | Fail: 0 | Skipped: 0")
-        self.stat_label.pack(side="right")
+        # # Log area
+        # log_frame = tk.Frame(p)
+        # log_frame.pack(fill="both", expand=True, padx=12, pady=6)
+        # tk.Label(log_frame, text="Log / Preview:").pack(anchor="w")
+        # self.log_text = tk.Text(log_frame)
+        # self.log_text.pack(fill="both", expand=True)
 
     # ---------------------------
     # Navigation helpers
