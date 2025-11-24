@@ -1,3 +1,22 @@
+#!/usr/bin/env python3
+# wa_template_sender_final.py
+#
+# GUI WA Template Sender (Tkinter native)
+# Features:
+#  - 3-page flow: Welcome -> Source Selection -> Main App
+#  - Source selection on page 2 chooses mode for page 3:
+#      * Excel: browse file & sheet picker
+#      * Google Sheets: API_KEY & SPREADSHEET_ID & sheet list
+#  - Mapping kolom manual (Nama, No HP, Alamat, Status, Status Pengambilan)
+#  - Status Pengambilan: dropdown choices (A option)
+#  - Preview, Start/Stop, Progress, Log
+#  - Normalize phone numbers
+#
+# Image refs (uploaded by user) - local paths (will be used as "urls" per request)
+IMAGE_PATH_1 = '/mnt/data/225ed5e8-505d-4a09-bc96-30065aaef279.png'
+IMAGE_PATH_2 = '/mnt/data/db9b840e-189e-47b5-80e2-27884ad49cb2.png'
+IMAGE_PATH_3 = '/mnt/data/fd619140-0a17-4bf2-bdf2-89f4eadecc4b.png'
+
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 import pandas as pd
