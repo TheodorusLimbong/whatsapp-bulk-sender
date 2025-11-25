@@ -1,4 +1,3 @@
-# ui_pages.py
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 import pandas as pd
@@ -16,9 +15,6 @@ from logic_worker import thread_safe_askstring, thread_safe_update_label
 # Window size chosen: 1366 x 768 (not too tall)
 WINDOW_W = 1366
 WINDOW_H = 768
-
-# Predefined status pengambilan dropdown options (you can edit)
-STATUS_PENG_OPTIONS = ["", "BELUM DIAMBIL", "SUDAH DIAMBIL", "PERLU CATATAN", "BELUM", "SUDAH"]
 
 class WATemplateSenderApp(tk.Tk):
     def __init__(self):
@@ -231,14 +227,15 @@ class WATemplateSenderApp(tk.Tk):
         self.cmb_no = mk_row(1, "Kolom No HP:")
         self.cmb_addr = mk_row(2, "Kolom Alamat:")
         self.cmb_status = mk_row(3, "Kolom Status:")
-        self.cmb_status_peng = mk_row(4, "Kolom Status Pengambilan:")
 
         # Status Pengambilan filter dropdown (A option)
         filter_frame = tk.Frame(p)
         filter_frame.pack(fill="x", padx=12, pady=(6,0))
-        tk.Label(filter_frame, text="Filter Status Pengambilan (choose):", anchor="w").pack(side="left", padx=4)
-        self.filter_status_peng_combo = ttk.Combobox(filter_frame, values=STATUS_PENG_OPTIONS, width=30)
-        self.filter_status_peng_combo.pack(side="left", padx=6)
+        # NEW: Filter Status otomatis (untuk kolom status biasa)
+        tk.Label(filter_frame, text="Filter Status:", anchor="w").pack(side="left", padx=10)
+        self.filter_status_combo = ttk.Combobox(filter_frame, width=30)
+        self.filter_status_combo.pack(side="left", padx=6)
+
 
         btn_auto_map = ttk.Button(map_frame, text="Isi Kolom Otomatis", command=self._auto_map_cols)
         btn_auto_map.grid(row=5, column=1, pady=8, sticky="w")
@@ -426,8 +423,18 @@ class WATemplateSenderApp(tk.Tk):
     # ---------------------------
     def _after_load(self):
         cols = list(self.df.columns)
-        for cmb in (self.cmb_name, self.cmb_no, self.cmb_addr, self.cmb_status, self.cmb_status_peng):
+        for cmb in (self.cmb_name, self.cmb_no, self.cmb_addr, self.cmb_status):
             cmb['values'] = cols
+                # NEW: auto fill unique status
+        try:
+            status_col = self.cmb_status.get()
+            if status_col in self.df.columns:
+                unique_status = sorted(self.df[status_col].dropna().unique().astype(str))
+                self.filter_status_combo['values'] = [""] + unique_status
+                self.filter_status_combo.set("")  # default no filter
+        except:
+            pass
+
         self.log(f"Data loaded. Columns: {cols}")
         self.status_label.config(text="Data loaded")
         # select sensible defaults
@@ -448,7 +455,6 @@ class WATemplateSenderApp(tk.Tk):
         self.cmb_no.set(find_like(['phone','hp','no','tel']))
         self.cmb_addr.set(find_like(['alamat','address','addr']))
         self.cmb_status.set(find_like(['status']))
-        self.cmb_status_peng.set(find_like(['pengambilan','ambil','status peng']))
 
     # ---------------------------
     # Preview
@@ -515,11 +521,14 @@ class WATemplateSenderApp(tk.Tk):
         start_idx = max(1, start_idx)
         end_idx = min(rows_total, end_idx)
 
-        # filters from UI
-        filter_status_val = None
-        if self.cmb_status.get().strip():
-            filter_status_val = thread_safe_askstring(self, "Filter", f"Enter value to filter column '{self.cmb_status.get()}': (leave blank = no filter)")
-        filter_status_peng_val = self.filter_status_peng_combo.get().strip()
+        # Pastikan variabel filter_status_val selalu ada
+        filter_status_val = ""
+        if hasattr(self, "filter_status_combo"):
+            try:
+                filter_status_val = self.filter_status_combo.get().strip()
+            except:
+                filter_status_val = ""
+
 
         try:
             for i in range(start_idx-1, end_idx):
@@ -527,6 +536,9 @@ class WATemplateSenderApp(tk.Tk):
                     self.log("Stopped by user.")
                     break
                 row = self.df.iloc[i]
+
+                filter_status_val = self.filter_status_combo.get().strip() if hasattr(self, "filter_status_combo") else ""
+
                 # apply status filter if specified
                 if filter_status_val:
                     if str(row.get(self.cmb_status.get(), "")).strip() != filter_status_val:
@@ -534,14 +546,7 @@ class WATemplateSenderApp(tk.Tk):
                         self.log(f"Row {i+1} skipped (status mismatch).")
                         self._update_stats()
                         self.progress['value'] += 1
-                        continue
-                # apply status pengambilan filter (from dropdown)
-                if filter_status_peng_val:
-                    if str(row.get(self.cmb_status_peng.get(), "")).strip() != filter_status_peng_val:
-                        self.skipped += 1
-                        self.log(f"Row {i+1} skipped (status pengambilan mismatch).")
-                        self._update_stats()
-                        self.progress['value'] += 1
+                        filter_status_val = self.filter_status_combo.get().strip()
                         continue
 
                 raw_no = row.get(self.cmb_no.get(), "")
