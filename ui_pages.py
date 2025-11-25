@@ -134,6 +134,7 @@ class WATemplateSenderApp(tk.Tk):
         tk.Label(footer, text="© Iconnet. All rights reserved", bg="white").pack(side="bottom", pady=6)
 
     def _select_source_and_continue(self, mode):
+        self.reset_log()
         # mode is "excel" or "gsheet"
         self.selected_source = mode
         # clear previous loaded data state
@@ -322,6 +323,7 @@ class WATemplateSenderApp(tk.Tk):
     # Excel functions
     # ---------------------------
     def _browse_file(self):
+        self.reset_log()
         f = filedialog.askopenfilename(filetypes=[("Excel/CSV", "*.xlsx *.xls *.csv")])
         if not f:
             return
@@ -340,6 +342,7 @@ class WATemplateSenderApp(tk.Tk):
                                 f"Not an Excel file or could not read sheets: {e}. If CSV, use Load Sheet anyway.")
 
     def _load_sheet_from_excel(self):
+        self.reset_log()
         if not self.excel_path:
             messagebox.showwarning("No file", "Pilih file Excel terlebih dulu.")
             return
@@ -363,6 +366,7 @@ class WATemplateSenderApp(tk.Tk):
     # Google Sheets functions
     # ---------------------------
     def _get_gs_sheets(self):
+        self.reset_log()
         api = self.entry_api.get().strip()
         ss = self.entry_ss.get().strip()
         if not api or not ss:
@@ -380,6 +384,7 @@ class WATemplateSenderApp(tk.Tk):
             messagebox.showerror("Error", f"Gagal ambil sheet list: {e}")
 
     def _load_from_gs(self):
+        self.reset_log()
         api = self.entry_api.get().strip()
         ss = self.entry_ss.get().strip()
         sheet = self.gs_sheet_combo.get().strip()
@@ -460,6 +465,7 @@ class WATemplateSenderApp(tk.Tk):
     # Preview
     # ---------------------------
     def _preview(self):
+        self.reset_log()
         if self.df is None:
             messagebox.showwarning("No data", "Load data dulu.")
             return
@@ -486,6 +492,7 @@ class WATemplateSenderApp(tk.Tk):
     # Sending logic
     # ---------------------------
     def _start_sending(self):
+        self.reset_log()
         if self.df is None:
             messagebox.showwarning("No data", "Load data dulu.")
             return
@@ -642,6 +649,8 @@ class WATemplateSenderApp(tk.Tk):
         elif self.selected_source == "gsheet":
             self.gsheet_frame.grid()
             self.excel_frame.grid_remove()
+        self.log_text.delete("1.0", tk.END)
+
 
 
     def _update_stats(self):
@@ -653,3 +662,7 @@ class WATemplateSenderApp(tk.Tk):
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
         self.log_text.insert("end", f"[{ts}] {msg}\n")
         self.log_text.see("end")
+    
+    def reset_log(self):
+        """Clear log setiap kali user menjalankan aksi baru."""
+        self.log_text.delete("1.0", tk.END)
