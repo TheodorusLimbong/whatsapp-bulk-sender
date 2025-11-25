@@ -191,12 +191,8 @@ class WATemplateSenderApp(tk.Tk):
         self.btn_getsheets.grid(row=2, column=3, padx=6)
         self.gs_sheet_combo = ttk.Combobox(controls, width=30)
         self.gs_sheet_combo.grid(row=2, column=4, sticky="w")
-        tk.Label(controls, text="Range (ex: A:F):").grid(row=3, column=3, sticky="e")
-        self.entry_range = tk.Entry(controls, width=12)
-        self.entry_range.insert(0, "A:F")
-        self.entry_range.grid(row=3, column=4, sticky="w", padx=6)
         self.btn_load_gs = ttk.Button(controls, text="Load from Google Sheets", command=self._load_from_gs)
-        self.btn_load_gs.grid(row=3, column=5, padx=6)
+        self.btn_load_gs.grid(row=3, column=3, padx=6)
 
         # Rows selection
         tk.Label(controls, text="Rows (start-end):").grid(row=4, column=0, sticky="w", pady=6)
@@ -320,15 +316,16 @@ class WATemplateSenderApp(tk.Tk):
         self.excel_path = f
         self.entry_file.delete(0, tk.END)
         self.entry_file.insert(0, f)
-        # read sheet names if excel
+
         try:
             xls = pd.ExcelFile(f)
+            # Tidak dibatasi — semua sheet akan dimasukkan
             self.sheet_combo['values'] = xls.sheet_names
             messagebox.showinfo("File loaded", f"File loaded. {len(xls.sheet_names)} sheet(s) found.")
         except Exception as e:
-            # CSV: set sheet combo to empty and allow load as CSV
             self.sheet_combo['values'] = []
-            messagebox.showwarning("Warning", f"Not an Excel file or could not read sheets: {e}. If CSV, use Load Sheet anyway.")
+            messagebox.showwarning("Warning",
+                                f"Not an Excel file or could not read sheets: {e}. If CSV, use Load Sheet anyway.")
 
     def _load_sheet_from_excel(self):
         if not self.excel_path:
@@ -374,25 +371,40 @@ class WATemplateSenderApp(tk.Tk):
         api = self.entry_api.get().strip()
         ss = self.entry_ss.get().strip()
         sheet = self.gs_sheet_combo.get().strip()
-        rng = self.entry_range.get().strip()
-        if not (api and ss and sheet and rng):
-            messagebox.showwarning("Missing", "Isi API_KEY, SPREADSHEET_ID, pilih sheet, dan range.")
+
+        if not (api and ss and sheet):
+            messagebox.showwarning("Missing", "Isi API_KEY, SPREADSHEET_ID, dan pilih sheet.")
             return
+
+        # RANGE AUTO: ambil semua kolom dari sheet
+        rng = "A:ZZZ"
+
         try:
             values_range = f"{sheet}!{rng}"
             url = f"https://sheets.googleapis.com/v4/spreadsheets/{ss}/values/{values_range}?key={api}"
+
             r = requests.get(url, timeout=15)
             r.raise_for_status()
             js = r.json()
+
             vals = js.get("values", [])
             if not vals:
-                messagebox.showwarning("Empty", "Tidak ada data pada range tersebut.")
+                messagebox.showwarning("Empty", "Tidak ada data pada sheet tersebut.")
                 return
+
+            # Normalisasi panjang tiap baris
+            max_len = max(len(row) for row in vals)
+            vals = [row + [""] * (max_len - len(row)) for row in vals]
+
             self.df = pd.DataFrame(vals[1:], columns=vals[0])
             self._after_load()
-            messagebox.showinfo("Loaded", "Data loaded from Google Sheets.")
+
+            messagebox.showinfo("Loaded", "Data loaded from Google Sheets (all columns).")
+
         except Exception as e:
             messagebox.showerror("Error", f"Gagal load data: {e}")
+
+
 
     # ---------------------------
     # After loading any source
@@ -593,7 +605,6 @@ class WATemplateSenderApp(tk.Tk):
             self.entry_ss.configure(state="disabled")
             self.btn_getsheets.configure(state="disabled")
             self.gs_sheet_combo.configure(state="disabled")
-            self.entry_range.configure(state="disabled")
             self.btn_load_gs.configure(state="disabled")
         else:
             # gsheet: disable file browse, enable api fields
@@ -608,7 +619,6 @@ class WATemplateSenderApp(tk.Tk):
             self.entry_ss.configure(state="normal")
             self.btn_getsheets.configure(state="normal")
             self.gs_sheet_combo.configure(state="normal")
-            self.entry_range.configure(state="normal")
             self.btn_load_gs.configure(state="normal")
 
     def _update_stats(self):
