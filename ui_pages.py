@@ -444,6 +444,8 @@ class WATemplateSenderApp(tk.Tk):
         self.status_label.config(text="Data loaded")
         # select sensible defaults
         self._auto_map_cols()
+        self._update_filter_status_options()
+
 
     def _auto_map_cols(self):
         if self.df is None:
@@ -460,33 +462,83 @@ class WATemplateSenderApp(tk.Tk):
         self.cmb_no.set(find_like(['phone','hp','no','tel']))
         self.cmb_addr.set(find_like(['alamat','address','addr']))
         self.cmb_status.set(find_like(['status']))
+        self._update_filter_status_options()
+
+    def _update_filter_status_options(self):
+        """Mengisi filter_status_combo berdasarkan kolom status yang dipilih."""
+        try:
+            col = self.cmb_status.get()
+            if not col or self.df is None:
+                return
+
+            unique_vals = sorted(list(set(str(x).strip() for x in self.df[col].dropna())))
+            self.filter_status_combo['values'] = [""] + unique_vals
+        except:
+            pass
+
 
     # ---------------------------
     # Preview
     # ---------------------------
     def _preview(self):
         self.reset_log()
+
         if self.df is None:
             messagebox.showwarning("No data", "Load data dulu.")
             return
-        try:
-            n = 5
-            start = int(self.row_start.get()) if self.row_start.get().strip() else 1
-            end = int(self.row_end.get()) if self.row_end.get().strip() else start + n - 1
-            subset = self.df.iloc[start-1:end]
-            template = self.template_text.get("1.0", tk.END)
-            self.log_text.delete("1.0", tk.END)
-            for idx, r in subset.iterrows():
-                nama = r.get(self.cmb_name.get(), "")
-                no = normalize_phone(r.get(self.cmb_no.get(), "")) or ""
-                alamat = r.get(self.cmb_addr.get(), "")
-                try:
-                    msg = template.format(nama=nama, no_hp=no, alamat=alamat)
-                except Exception as e:
-                    msg = f"[Template fmt error: {e}]"
-                self.log_text.insert(tk.END, f"Row {idx+1} -> {no}\n{msg}\n\n")
-        except Exception as e:
-            messagebox.showerror("Error", f"Preview error: {e}")
+
+        template = self.template_text.get("1.0", tk.END)
+        filter_status = self.filter_status_combo.get().strip()
+
+        # Baca batas row dari input user
+        row_start = int(self.row_start.get()) if self.row_start.get().strip() else 1
+        row_end = int(self.row_end.get()) if self.row_end.get().strip() else len(self.df)
+
+        # Pastikan tidak melebihi batas
+        row_start = max(1, row_start)
+        row_end = min(len(self.df), row_end)
+
+        valid_rows = []
+
+        # Loop hanya dari row_start–row_end
+        for i in range(row_start - 1, row_end):
+            row = self.df.iloc[i]
+            actual_row = i + 1
+
+            # Filter status
+            if filter_status:
+                if str(row.get(self.cmb_status.get(), "")).strip() != filter_status:
+                    continue
+
+            # Validasi nomor HP
+            phone = normalize_phone(row.get(self.cmb_no.get(), ""))
+            if not phone:
+                continue
+
+            valid_rows.append((actual_row, row, phone))
+
+            # Ambil hanya 5 preview
+            if len(valid_rows) >= 5:
+                break
+
+        # Tidak ada row valid
+        if not valid_rows:
+            self.log("Tidak ada baris valid untuk preview di range tersebut.")
+            return
+
+        # Tampilkan preview
+        for actual_row, row, phone in valid_rows:
+            nama = row.get(self.cmb_name.get(), "")
+            alamat = row.get(self.cmb_addr.get(), "")
+
+            try:
+                msg = template.format(nama=nama, no_hp=phone, alamat=alamat)
+            except:
+                msg = "[Template error]"
+
+            self.log(f"Preview row {actual_row} -> {phone}\n{msg}\n")
+
+
 
     # ---------------------------
     # Sending logic
