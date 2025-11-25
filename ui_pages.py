@@ -511,17 +511,19 @@ class WATemplateSenderApp(tk.Tk):
         else:
             self.log("No running process to stop.")
 
+    
     def _send_worker(self):
         rows_total = len(self.df)
         self.progress['maximum'] = rows_total
         self.log(f"Start sending. Total rows: {rows_total}")
         self.status_label.config(text="Running")
+
         start_idx = int(self.row_start.get()) if self.row_start.get().strip() else 1
         end_idx = int(self.row_end.get()) if self.row_end.get().strip() else rows_total
         start_idx = max(1, start_idx)
         end_idx = min(rows_total, end_idx)
 
-        # Pastikan variabel filter_status_val selalu ada
+        # Ambil filter status satu kali
         filter_status_val = ""
         if hasattr(self, "filter_status_combo"):
             try:
@@ -529,31 +531,37 @@ class WATemplateSenderApp(tk.Tk):
             except:
                 filter_status_val = ""
 
+        first = True
 
         try:
-            for i in range(start_idx-1, end_idx):
+            for i in range(start_idx - 1, end_idx):
+
                 if self.stop_event.is_set():
                     self.log("Stopped by user.")
                     break
+
                 row = self.df.iloc[i]
+                actual_row = i + 1
 
-                filter_status_val = self.filter_status_combo.get().strip() if hasattr(self, "filter_status_combo") else ""
-
-                # apply status filter if specified
+                # -------------------------
+                # FILTER STATUS
+                # -------------------------
                 if filter_status_val:
-                    if str(row.get(self.cmb_status.get(), "")).strip() != filter_status_val:
+                    row_status = str(row.get(self.cmb_status.get(), "")).strip()
+                    if row_status != filter_status_val:
                         self.skipped += 1
-                        self.log(f"Row {i+1} skipped (status mismatch).")
-                        self._update_stats()
+                        self.log(f"Row {actual_row} skipped (status mismatch)")
                         self.progress['value'] += 1
-                        filter_status_val = self.filter_status_combo.get().strip()
                         continue
 
+                # -------------------------
+                # VALIDASI PHONE
+                # -------------------------
                 raw_no = row.get(self.cmb_no.get(), "")
                 phone = normalize_phone(raw_no)
                 if not phone:
                     self.fail += 1
-                    self.log(f"Row {i+1} fail: invalid phone ({raw_no})")
+                    self.log(f"Row {actual_row} fail: invalid phone ({raw_no})")
                     self._update_stats()
                     self.progress['value'] += 1
                     continue
@@ -565,37 +573,55 @@ class WATemplateSenderApp(tk.Tk):
                     pesan = template.format(nama=nama, no_hp=phone, alamat=alamat)
                 except Exception as e:
                     self.fail += 1
-                    self.log(f"Row {i+1} fail: template error: {e}")
+                    self.log(f"Row {actual_row} template error: {e}")
                     self._update_stats()
                     self.progress['value'] += 1
                     continue
 
-                self.log(f"Sending to {phone} (row {i+1}) ...")
+                # -------------------------
+                # FIRST SEND WAIT FIX
+                # -------------------------
+                if first:
+                    self.log("Preparing WhatsApp Web... waiting 5 seconds...")
+                    time.sleep(5)
+                    first = False
+
+                # -------------------------
+                # SEND MESSAGE (SETIAP ITERASI)
+                # -------------------------
+                self.log(f"Sending to {phone} (row {actual_row}) ...")
+
                 try:
                     kit.sendwhatmsg_instantly(phone, pesan, wait_time=10, tab_close=True)
                     self.success += 1
-                    self.log(f"Row {i+1} success -> {phone}")
+                    self.log(f"Row {actual_row} success -> {phone}")
                 except Exception as e:
                     self.fail += 1
-                    self.log(f"Row {i+1} error sending: {e}")
+                    self.log(f"Row {actual_row} SEND ERROR: {e}")
 
                 self.progress['value'] += 1
                 self._update_stats()
 
-                # delay loop allows stop request to be honored promptly
+                # -------------------------
+                # DELAY ANTAR PESAN
+                # -------------------------
                 try:
                     dmin = int(self.delay_min.get())
                     dmax = int(self.delay_max.get())
                 except:
                     dmin, dmax = 3, 5
+
                 if dmax < dmin:
                     dmax = dmin
+
                 delay = random.randint(dmin, dmax)
                 self.log(f"Wait {delay} sec ...")
+
                 for _ in range(delay):
                     if self.stop_event.is_set():
                         break
                     time.sleep(1)
+
                 if self.stop_event.is_set():
                     self.log("Stop requested. Exiting.")
                     break
@@ -604,6 +630,7 @@ class WATemplateSenderApp(tk.Tk):
             self.status_label.config(text="Idle")
             self.log("Sending finished.")
             self._update_stats()
+
 
     # ---------------------------
     # Helpers
