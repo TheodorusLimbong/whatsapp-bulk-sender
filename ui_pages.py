@@ -166,33 +166,48 @@ class WATemplateSenderApp(tk.Tk):
         controls = tk.Frame(p)
         controls.pack(fill="x", padx=10, pady=6)
 
+        # ==== NEW: frame khusus excel & gsheet ====
+        self.excel_frame = tk.Frame(controls)
+        self.excel_frame.grid(row=0, column=0, columnspan=10, sticky="w")
+
+        self.gsheet_frame = tk.Frame(controls)
+        self.gsheet_frame.grid(row=1, column=0, columnspan=10, sticky="w")
+
+
         # --- Excel file UI (shown only if selected_source == 'excel') ---
-        lbl_file = tk.Label(controls, text="File (CSV / Excel):")
-        lbl_file.grid(row=0, column=0, sticky="w", pady=4)
-        self.entry_file = tk.Entry(controls, width=70)
-        self.entry_file.grid(row=0, column=1, columnspan=3, sticky="w")
-        self.btn_browse = ttk.Button(controls, text="Browse", command=self._browse_file)
-        self.btn_browse.grid(row=0, column=4, padx=6)
-        self.sheet_combo = ttk.Combobox(controls, width=30)
-        self.sheet_combo.grid(row=1, column=1, sticky="w")
-        self.btn_load_sheet = ttk.Button(controls, text="Load Sheet", command=self._load_sheet_from_excel)
+        # ---- EXCEL UI ----
+        tk.Label(self.excel_frame, text="File (CSV/Excel):").grid(row=0, column=0, sticky="w")
+        self.entry_file = tk.Entry(self.excel_frame, width=70)
+        self.entry_file.grid(row=0, column=1, padx=6)
+        self.btn_browse = ttk.Button(self.excel_frame, text="Browse", command=self._browse_file)
+        self.btn_browse.grid(row=0, column=2, padx=6)
+
+        tk.Label(self.excel_frame, text="Sheet:").grid(row=1, column=0, sticky="w")
+        self.sheet_combo = ttk.Combobox(self.excel_frame, width=30)
+        self.sheet_combo.grid(row=1, column=1, padx=6)
+        self.btn_load_sheet = ttk.Button(self.excel_frame, text="Load Sheet", command=self._load_sheet_from_excel)
         self.btn_load_sheet.grid(row=1, column=2, padx=6)
 
+
         # --- Google Sheets UI (shown only if selected_source == 'gsheet') ---
-        lbl_api = tk.Label(controls, text="API_KEY:")
-        lbl_api.grid(row=2, column=0, sticky="w", pady=4)
-        self.entry_api = tk.Entry(controls, width=50)
-        self.entry_api.grid(row=2, column=1, columnspan=2, sticky="w")
-        lbl_ss = tk.Label(controls, text="SPREADSHEET_ID:")
-        lbl_ss.grid(row=3, column=0, sticky="w", pady=4)
-        self.entry_ss = tk.Entry(controls, width=50)
-        self.entry_ss.grid(row=3, column=1, columnspan=2, sticky="w")
-        self.btn_getsheets = ttk.Button(controls, text="Get Sheet List", command=self._get_gs_sheets)
-        self.btn_getsheets.grid(row=2, column=3, padx=6)
-        self.gs_sheet_combo = ttk.Combobox(controls, width=30)
-        self.gs_sheet_combo.grid(row=2, column=4, sticky="w")
-        self.btn_load_gs = ttk.Button(controls, text="Load from Google Sheets", command=self._load_from_gs)
-        self.btn_load_gs.grid(row=3, column=3, padx=6)
+        # ---- GOOGLE SHEETS UI ----
+        tk.Label(self.gsheet_frame, text="API_KEY:").grid(row=0, column=0, sticky="w")
+        self.entry_api = tk.Entry(self.gsheet_frame, width=50)
+        self.entry_api.grid(row=0, column=1, padx=6)
+
+        tk.Label(self.gsheet_frame, text="SPREADSHEET_ID:").grid(row=1, column=0, sticky="w")
+        self.entry_ss = tk.Entry(self.gsheet_frame, width=50)
+        self.entry_ss.grid(row=1, column=1, padx=6)
+
+        self.btn_getsheets = ttk.Button(self.gsheet_frame, text="Get Sheet List", command=self._get_gs_sheets)
+        self.btn_getsheets.grid(row=0, column=2, padx=6)
+
+        self.gs_sheet_combo = ttk.Combobox(self.gsheet_frame, width=30)
+        self.gs_sheet_combo.grid(row=1, column=2, padx=6)
+
+        self.btn_load_gs = ttk.Button(self.gsheet_frame, text="Load from Google Sheets", command=self._load_from_gs)
+        self.btn_load_gs.grid(row=1, column=3, padx=6)
+
 
         # Rows selection
         tk.Label(controls, text="Rows (start-end):").grid(row=4, column=0, sticky="w", pady=6)
@@ -589,37 +604,13 @@ class WATemplateSenderApp(tk.Tk):
     # Helpers
     # ---------------------------
     def _refresh_main_source_ui(self):
-        # Called when showing main page: show/hide UI depending on self.selected_source
-        s = self.selected_source or "excel"
-        self.source_label.config(text=f"Source: {s.upper()}")
-        if s == "excel":
-            # show file controls, hide google sheets controls
-            self.entry_file.configure(state="normal")
-            self.btn_browse.configure(state="normal")
-            self.sheet_combo.configure(state="normal")
-            self.btn_load_sheet.configure(state="normal")
-            # hide google sheets widgets by disabling them
-            self.entry_api.delete(0, tk.END)
-            self.entry_ss.delete(0, tk.END)
-            self.entry_api.configure(state="disabled")
-            self.entry_ss.configure(state="disabled")
-            self.btn_getsheets.configure(state="disabled")
-            self.gs_sheet_combo.configure(state="disabled")
-            self.btn_load_gs.configure(state="disabled")
-        else:
-            # gsheet: disable file browse, enable api fields
-            self.entry_file.delete(0, tk.END)
-            self.excel_path = None
-            self.entry_file.configure(state="disabled")
-            self.btn_browse.configure(state="disabled")
-            self.sheet_combo.configure(state="disabled")
-            self.btn_load_sheet.configure(state="disabled")
-            # enable gs widgets
-            self.entry_api.configure(state="normal")
-            self.entry_ss.configure(state="normal")
-            self.btn_getsheets.configure(state="normal")
-            self.gs_sheet_combo.configure(state="normal")
-            self.btn_load_gs.configure(state="normal")
+        if self.selected_source == "excel":
+            self.excel_frame.grid()
+            self.gsheet_frame.grid_remove()
+        elif self.selected_source == "gsheet":
+            self.gsheet_frame.grid()
+            self.excel_frame.grid_remove()
+
 
     def _update_stats(self):
         # Thread-safe update (do not recreate widgets here)
