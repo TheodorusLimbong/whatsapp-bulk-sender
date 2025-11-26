@@ -8,6 +8,7 @@ import time
 import random
 import re
 import os
+import json
 
 from utils import normalize_phone
 from logic_worker import thread_safe_askstring, thread_safe_update_label
@@ -40,6 +41,39 @@ class WATemplateSenderApp(tk.Tk):
 
         self._build_pages()
         self.show_welcome()
+        self._load_gsheet_config()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _on_close(self):
+        self._save_gsheet_config()
+        self.destroy()
+
+    def _load_gsheet_config(self):
+        self._save_gsheet_config()
+        try:
+            if os.path.exists("config.json"):
+                with open("config.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    self.entry_api_key.delete(0, tk.END)
+                    self.entry_api_key.insert(0, data.get("api_key", ""))
+
+                    self.entry_spreadsheet_id.delete(0, tk.END)
+                    self.entry_spreadsheet_id.insert(0, data.get("spreadsheet_id", ""))
+        except Exception as e:
+            self.log(f"Config load error: {e}")
+
+
+    def _save_gsheet_config(self):
+        try:
+            data = {
+                "api_key": self.entry_api_key.get().strip(),
+                "spreadsheet_id": self.entry_spreadsheet_id.get().strip()
+            }
+            with open("config.json", "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4)
+        except Exception as e:
+            self.log(f"Config save error: {e}")
+
 
     # ---------------------------
     # Pages: build and navigation
