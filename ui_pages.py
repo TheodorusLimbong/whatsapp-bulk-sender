@@ -9,7 +9,6 @@ import random
 import re
 import os
 import json
-
 from utils import normalize_phone
 from logic_worker import thread_safe_askstring, thread_safe_update_label
 
@@ -20,7 +19,7 @@ WINDOW_H = 768
 class WATemplateSenderApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("WA Template Sender - Iconnet")
+        self.title("Whatsapp Automation")
         # center geometry
         x = (self.winfo_screenwidth() - WINDOW_W) // 2
         y = (self.winfo_screenheight() - WINDOW_H) // 2
@@ -115,20 +114,29 @@ class WATemplateSenderApp(tk.Tk):
         body = tk.Frame(p, bg="white")
         body.pack(fill="both", expand=True)
 
-        lbl_title = tk.Label(body, text="Welcome", font=("Segoe UI", 48, "bold"), bg="white")
-        lbl_title.pack(pady=(60, 0))
+        # responsive font size (example)
+        title_size = min(86, max(36, WINDOW_H // 12))
+        lbl_title = tk.Label(body, text="Welcome", font=("Segoe UI", title_size, "bold"), bg="white")
+        lbl_title.pack(pady=(40, 0))
 
-        lbl_sub = tk.Label(body, text="To\nWhatsApp Automation", font=("Segoe UI", 20), bg="white", justify="center")
+        lbl_sub = tk.Label(body, text="To\nWhatsApp Automation", font=("Segoe UI", 28), bg="white", justify="center")
         lbl_sub.pack(pady=(8, 20))
 
-        btn_next = ttk.Button(body, text="Next", command=self.show_source)
-        btn_next.pack(pady=12)
-        btn_next.configure(width=20)
+        btn_next = ttk.Button(
+            body,
+            text="Next",
+            command=self.show_source
+        )
+        btn_next.pack(pady=20, ipadx=25, ipady=22)   # memperbesar fisik tombol
+        btn_next.configure(width=30)
+        btn_next.focus_set()
+        self.bind('<Return>', lambda e: self.show_source())
 
-        footer = tk.Frame(p, height=40, bg="white")
+        footer = tk.Frame(p, height=50, bg="white")
         footer.pack(side="bottom", fill="x")
         lbl_footer = tk.Label(footer, text="© Iconnet. All rights reserved", bg="white")
         lbl_footer.pack(side="bottom", pady=6)
+
 
     # ---------------------------
     # Source page (page 2)
