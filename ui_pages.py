@@ -157,7 +157,7 @@ class WATemplateSenderApp(tk.Tk):
 
         # ===== TOMBOL BACK (DIPERBESAR) =====
         btn_back = ttk.Button(header, text="← Back", command=self.show_welcome)
-        btn_back.pack(side="left", padx=9, pady=6)
+        btn_back.pack(side="left", padx=14, pady=6)
         btn_back.configure(width=10)
 
 
