@@ -292,13 +292,25 @@ class WATemplateSenderApp(tk.Tk):
         self.cmb_addr = mk_row(2, "Kolom Alamat:")
         self.cmb_status = mk_row(3, "Kolom Status:")
 
+        # ===== FILTER STATUS (SEJAJAR DENGAN KOLOM LAIN) =====
+        lbl_filter = tk.Label(map_frame, text="Filter Status:", width=20, anchor="w")
+        lbl_filter.grid(row=4, column=0, sticky="w", pady=6)
+
+        self.filter_status_combo = ttk.Combobox(map_frame, width=50)
+        self.filter_status_combo.grid(row=4, column=1, columnspan=3, sticky="w", padx=6)
+
+        # Tombol otomatis tetap di bawah rapi
+        btn_auto_map = ttk.Button(map_frame, text="Isi Kolom Otomatis", command=self._auto_map_cols)
+        btn_auto_map.grid(row=5, column=1, pady=10, sticky="w")
+
+
         # Status Pengambilan filter dropdown (A option)
-        filter_frame = tk.Frame(p)
-        filter_frame.pack(fill="x", padx=12, pady=(6,0))
-        # NEW: Filter Status otomatis (untuk kolom status biasa)
-        tk.Label(filter_frame, text="Filter Status:", anchor="w").pack(side="left", padx=10)
-        self.filter_status_combo = ttk.Combobox(filter_frame, width=30)
-        self.filter_status_combo.pack(side="left", padx=6)
+        # filter_frame = tk.Frame(p)
+        # filter_frame.pack(fill="x", padx=12, pady=(6,0))
+        # # NEW: Filter Status otomatis (untuk kolom status biasa)
+        # tk.Label(filter_frame, text="Filter Status:", anchor="w").pack(side="left", padx=10)
+        # self.filter_status_combo = ttk.Combobox(filter_frame, width=30)
+        # self.filter_status_combo.pack(side="left", padx=6)
 
 
         btn_auto_map = ttk.Button(map_frame, text="Isi Kolom Otomatis", command=self._auto_map_cols)
