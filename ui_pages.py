@@ -144,33 +144,53 @@ class WATemplateSenderApp(tk.Tk):
     # ---------------------------
     def _build_source_page(self):
         p = self.page_source
-        header = tk.Frame(p, height=60, bg="white")
+        header = tk.Frame(p, height=80, bg="white")
         header.pack(fill="x")
 
-        btn_back = ttk.Button(header, text="←", command=self.show_welcome)
-        btn_back.pack(side="left", padx=8, pady=8)
+        # ===== STYLE TOMBOL BESAR (AMAN DITARUH DI SINI) =====
+        style = ttk.Style()
+        style.configure(
+            "Large.TButton",
+            font=("Segoe UI", 18, "bold"),
+            padding=14
+        )
 
-        lbl = tk.Label(p, text="Pilih Inputan Data yang akan di proses", font=("Segoe UI", 22, "bold"), bg="white")
-        lbl.pack(pady=(18, 6))
+        # ===== TOMBOL BACK (DIPERBESAR) =====
+        btn_back = ttk.Button(header, text="← Back", command=self.show_welcome)
+        btn_back.pack(side="left", padx=9, pady=6)
+        btn_back.configure(width=10)
+
+
+        # ===== JUDUL =====
+        lbl = tk.Label(
+            p,
+            text="Pilih Inputan Data yang akan di proses",
+            font=("Segoe UI", 24, "bold"),
+            bg="white"
+        )
+        lbl.pack(pady=(24, 10))
 
         box = tk.Frame(p, bg="white")
         box.pack(expand=True)
 
-        # Big buttons (enlarged)
-        btn_gsheet = ttk.Button(box, text="Google Sheets", command=lambda: self._select_source_and_continue("gsheet"))
-        btn_excel = ttk.Button(box, text="Excel (.xlsx)", command=lambda: self._select_source_and_continue("excel"))
+        # ===== TOMBOL GOOGLE SHEETS & EXCEL (DIPERBESAR) =====
+        btn_gsheet = ttk.Button(
+            box,
+            text="Google Sheets",
+            command=lambda: self._select_source_and_continue("gsheet"),
+            style="Large.TButton"
+        )
 
-        # place side by side with gap
-        btn_gsheet.grid(row=0, column=0, padx=80, pady=30)
-        btn_excel.grid(row=0, column=1, padx=80, pady=30)
+        btn_excel = ttk.Button(
+            box,
+            text="Excel (.xlsx)",
+            command=lambda: self._select_source_and_continue("excel"),
+            style="Large.TButton"
+        )
 
-        # enlarge fonts on the buttons
-        btn_gsheet.configure(style="Large.TButton")
-        btn_excel.configure(style="Large.TButton")
-
-        # style for big buttons
-        style = ttk.Style()
-        style.configure("Large.TButton", font=("Segoe UI", 16), padding=10)
+        # ===== POSISI TOMBOL =====
+        btn_gsheet.grid(row=0, column=0, padx=100, pady=40, ipadx=20, ipady=14)
+        btn_excel.grid(row=0, column=1, padx=100, pady=40, ipadx=20, ipady=14)
 
         footer = tk.Frame(p, height=40, bg="white")
         footer.pack(side="bottom", fill="x")
