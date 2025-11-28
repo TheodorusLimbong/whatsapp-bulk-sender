@@ -1,6 +1,3 @@
-# logic_worker.py
-# helper functions to safely interact with Tkinter from worker threads
-
 import time
 from tkinter import simpledialog
 

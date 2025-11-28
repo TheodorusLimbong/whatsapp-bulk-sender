@@ -144,33 +144,53 @@ class WATemplateSenderApp(tk.Tk):
     # ---------------------------
     def _build_source_page(self):
         p = self.page_source
-        header = tk.Frame(p, height=60, bg="white")
+        header = tk.Frame(p, height=80, bg="white")
         header.pack(fill="x")
 
-        btn_back = ttk.Button(header, text="←", command=self.show_welcome)
-        btn_back.pack(side="left", padx=8, pady=8)
+        # ===== STYLE TOMBOL BESAR (AMAN DITARUH DI SINI) =====
+        style = ttk.Style()
+        style.configure(
+            "Large.TButton",
+            font=("Segoe UI", 18, "bold"),
+            padding=14
+        )
 
-        lbl = tk.Label(p, text="Pilih Inputan Data yang akan di proses", font=("Segoe UI", 22, "bold"), bg="white")
-        lbl.pack(pady=(18, 6))
+        # ===== TOMBOL BACK (DIPERBESAR) =====
+        btn_back = ttk.Button(header, text="← Back", command=self.show_welcome)
+        btn_back.pack(side="left", padx=14, pady=6)
+        btn_back.configure(width=10)
+
+
+        # ===== JUDUL =====
+        lbl = tk.Label(
+            p,
+            text="Pilih Inputan Data yang akan di proses",
+            font=("Segoe UI", 24, "bold"),
+            bg="white"
+        )
+        lbl.pack(pady=(24, 10))
 
         box = tk.Frame(p, bg="white")
         box.pack(expand=True)
 
-        # Big buttons (enlarged)
-        btn_gsheet = ttk.Button(box, text="Google Sheets", command=lambda: self._select_source_and_continue("gsheet"))
-        btn_excel = ttk.Button(box, text="Excel (.xlsx)", command=lambda: self._select_source_and_continue("excel"))
+        # ===== TOMBOL GOOGLE SHEETS & EXCEL (DIPERBESAR) =====
+        btn_gsheet = ttk.Button(
+            box,
+            text="Google Sheets",
+            command=lambda: self._select_source_and_continue("gsheet"),
+            style="Large.TButton"
+        )
 
-        # place side by side with gap
-        btn_gsheet.grid(row=0, column=0, padx=80, pady=30)
-        btn_excel.grid(row=0, column=1, padx=80, pady=30)
+        btn_excel = ttk.Button(
+            box,
+            text="Excel (.xlsx)",
+            command=lambda: self._select_source_and_continue("excel"),
+            style="Large.TButton"
+        )
 
-        # enlarge fonts on the buttons
-        btn_gsheet.configure(style="Large.TButton")
-        btn_excel.configure(style="Large.TButton")
-
-        # style for big buttons
-        style = ttk.Style()
-        style.configure("Large.TButton", font=("Segoe UI", 16), padding=10)
+        # ===== POSISI TOMBOL =====
+        btn_gsheet.grid(row=0, column=0, padx=100, pady=40, ipadx=20, ipady=14)
+        btn_excel.grid(row=0, column=1, padx=100, pady=40, ipadx=20, ipady=14)
 
         footer = tk.Frame(p, height=40, bg="white")
         footer.pack(side="bottom", fill="x")
@@ -267,18 +287,30 @@ class WATemplateSenderApp(tk.Tk):
             cmb.grid(row=r, column=1, columnspan=3, sticky="w", padx=6)
             return cmb
 
-        self.cmb_name = mk_row(0, "Kolom Nama:")
-        self.cmb_no = mk_row(1, "Kolom No HP:")
-        self.cmb_addr = mk_row(2, "Kolom Alamat:")
-        self.cmb_status = mk_row(3, "Kolom Status:")
+        self.cmb_name = mk_row(1, "Kolom Nama:")
+        self.cmb_no = mk_row(2, "Kolom No HP:")
+        self.cmb_addr = mk_row(3, "Kolom Alamat:")
+        self.cmb_status = mk_row(4, "Kolom Status:")
+
+        # ===== FILTER STATUS (SEJAJAR DENGAN KOLOM LAIN) =====
+        lbl_filter = tk.Label(map_frame, text="Filter Status:", width=20, anchor="w")
+        lbl_filter.grid(row=4, column=0, sticky="w", pady=6)
+
+        self.filter_status_combo = ttk.Combobox(map_frame, width=50)
+        self.filter_status_combo.grid(row=4, column=1, columnspan=3, sticky="w", padx=6)
+
+        # Tombol otomatis tetap di bawah rapi
+        btn_auto_map = ttk.Button(map_frame, text="Isi Kolom Otomatis", command=self._auto_map_cols)
+        btn_auto_map.grid(row=5, column=1, pady=10, sticky="w")
+
 
         # Status Pengambilan filter dropdown (A option)
-        filter_frame = tk.Frame(p)
-        filter_frame.pack(fill="x", padx=12, pady=(6,0))
-        # NEW: Filter Status otomatis (untuk kolom status biasa)
-        tk.Label(filter_frame, text="Filter Status:", anchor="w").pack(side="left", padx=10)
-        self.filter_status_combo = ttk.Combobox(filter_frame, width=30)
-        self.filter_status_combo.pack(side="left", padx=6)
+        # filter_frame = tk.Frame(p)
+        # filter_frame.pack(fill="x", padx=12, pady=(6,0))
+        # # NEW: Filter Status otomatis (untuk kolom status biasa)
+        # tk.Label(filter_frame, text="Filter Status:", anchor="w").pack(side="left", padx=10)
+        # self.filter_status_combo = ttk.Combobox(filter_frame, width=30)
+        # self.filter_status_combo.pack(side="left", padx=6)
 
 
         btn_auto_map = ttk.Button(map_frame, text="Isi Kolom Otomatis", command=self._auto_map_cols)
