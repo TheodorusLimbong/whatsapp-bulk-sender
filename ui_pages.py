@@ -250,31 +250,34 @@ class WATemplateSenderApp(tk.Tk):
 
 
         # --- Google Sheets UI (shown only if selected_source == 'gsheet') ---
-        # ---- GOOGLE SHEETS UI ----
-        tk.Label(self.gsheet_frame, text="API_KEY:").grid(row=0, column=0, sticky="w")
-        self.entry_api = tk.Entry(self.gsheet_frame, width=50)
-        self.entry_api.grid(row=0, column=1, padx=6)
+        tk.Label(self.gsheet_frame, text="API_KEY:", width=20, anchor="w").grid(row=0, column=0, sticky="w")
+        self.entry_api_key = tk.Entry(self.gsheet_frame)
+        self.entry_api_key.grid(row=0, column=1, padx=6, columnspan=3, sticky="ew") 
 
-        tk.Label(self.gsheet_frame, text="SPREADSHEET_ID:").grid(row=1, column=0, sticky="w")
-        self.entry_ss = tk.Entry(self.gsheet_frame, width=50)
-        self.entry_ss.grid(row=1, column=1, padx=6)
-
+        tk.Label(self.gsheet_frame, text="SPREADSHEET_ID:", width=20, anchor="w").grid(row=1, column=0, sticky="w")
+        self.entry_spreadsheet_id = tk.Entry(self.gsheet_frame)
+        self.entry_spreadsheet_id.grid(row=1, column=1, padx=6, columnspan=3, sticky="ew")
+        
         self.btn_getsheets = ttk.Button(self.gsheet_frame, text="Get Sheet List", command=self._get_gs_sheets)
-        self.btn_getsheets.grid(row=0, column=2, padx=6)
-
-        self.gs_sheet_combo = ttk.Combobox(self.gsheet_frame, width=30)
-        self.gs_sheet_combo.grid(row=1, column=2, padx=6)
-
+        self.btn_getsheets.grid(row=2, column=0, sticky="w", pady=4) 
+        
+        self.gs_sheet_combo = ttk.Combobox(self.gsheet_frame) 
+        self.gs_sheet_combo.grid(row=2, column=1, padx=6, columnspan=2, sticky="ew") 
         self.btn_load_gs = ttk.Button(self.gsheet_frame, text="Load from Google Sheets", command=self._load_from_gs)
-        self.btn_load_gs.grid(row=1, column=3, padx=6)
-
+        self.btn_load_gs.grid(row=2, column=3, padx=6, sticky="w")
 
         # Rows selection
-        tk.Label(controls, text="Rows (start-end):").grid(row=4, column=0, sticky="w", pady=6)
-        self.row_start = tk.Entry(controls, width=6)
-        self.row_start.grid(row=4, column=1, sticky="w")
-        self.row_end = tk.Entry(controls, width=6)
-        self.row_end.grid(row=4, column=1, sticky="e")
+        tk.Label(controls, text="Rows (start-end):", width=20, anchor="w").grid(row=4, column=0, sticky="w", pady=6) 
+        
+        # Gabungkan entry start dan end ke dalam satu kolom/span
+        rows_entry_frame = tk.Frame(controls)
+        # ⚠️ UBAH: Gunakan columnspan=3 agar entry start/end sejajar dengan entry lainnya
+        rows_entry_frame.grid(row=4, column=1, columnspan=3, sticky="ew", padx=6)
+        
+        self.row_start = tk.Entry(rows_entry_frame, width=6)
+        self.row_start.pack(side="left") # Menggunakan pack di dalam frame baru
+        self.row_end = tk.Entry(rows_entry_frame, width=6)
+        self.row_end.pack(side="left", padx=(6,0)) # Menggunakan pack di dalam frame baru
 
         # Column mapping area (bigger controls)
         map_frame = tk.Frame(p)
@@ -283,8 +286,9 @@ class WATemplateSenderApp(tk.Tk):
         def mk_row(r, label):
             lbl = tk.Label(map_frame, text=label, width=20, anchor="w")
             lbl.grid(row=r, column=0, sticky="w", pady=6)
-            cmb = ttk.Combobox(map_frame, width=50)
-            cmb.grid(row=r, column=1, columnspan=3, sticky="w", padx=6)
+            cmb = ttk.Combobox(map_frame) # ⚠️ Hapus width=50
+            # ⚠️ UBAH: Gunakan sticky="ew" agar input mengisi lebar penuh yang sama
+            cmb.grid(row=r, column=1, columnspan=3, sticky="ew", padx=6) 
             return cmb
 
         self.cmb_name = mk_row(1, "Kolom Nama:")
