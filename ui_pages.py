@@ -269,15 +269,13 @@ class WATemplateSenderApp(tk.Tk):
         # Rows selection
         tk.Label(controls, text="Rows (start-end):", width=20, anchor="w").grid(row=4, column=0, sticky="w", pady=6) 
         
-        # Gabungkan entry start dan end ke dalam satu kolom/span
         rows_entry_frame = tk.Frame(controls)
-        # ⚠️ UBAH: Gunakan columnspan=3 agar entry start/end sejajar dengan entry lainnya
         rows_entry_frame.grid(row=4, column=1, columnspan=3, sticky="ew", padx=6)
         
         self.row_start = tk.Entry(rows_entry_frame, width=6)
-        self.row_start.pack(side="left") # Menggunakan pack di dalam frame baru
+        self.row_start.pack(side="left") 
         self.row_end = tk.Entry(rows_entry_frame, width=6)
-        self.row_end.pack(side="left", padx=(6,0)) # Menggunakan pack di dalam frame baru
+        self.row_end.pack(side="left", padx=(6,0))
 
         # Column mapping area (bigger controls)
         map_frame = tk.Frame(p)
