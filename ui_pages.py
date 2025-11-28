@@ -269,11 +269,15 @@ class WATemplateSenderApp(tk.Tk):
         
     # --- Rows selection (SEJAJAR DENGAN GOOGLE SHEETS UI) ---
         tk.Label(self.gsheet_frame, text="Rows (start-end):", width=20, anchor="w")\
-        .grid(row=3, column=0, sticky="w", pady=6)
-        self.row_start = tk.Entry(self.gsheet_frame, width=6)
-        self.row_start.grid(row=3, column=1, sticky="w", padx=(6, 0))
-        self.row_end = tk.Entry(self.gsheet_frame, width=6)
-        self.row_end.grid(row=3, column=2, sticky="w", padx=(0, 0))
+            .grid(row=3, column=0, sticky="w", pady=6)
+
+        rows_frame = tk.Frame(self.gsheet_frame)
+        rows_frame.grid(row=3, column=1, sticky="w", padx=(6, 0))
+        self.row_start = tk.Entry(rows_frame, width=6)
+        self.row_start.pack(side="left", padx=(0, 4))
+        self.row_end = tk.Entry(rows_frame, width=6)
+        self.row_end.pack(side="left", padx=(0, 0))
+
 
         # Column mapping area (bigger controls)
         map_frame = tk.Frame(p)
