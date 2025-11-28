@@ -287,10 +287,10 @@ class WATemplateSenderApp(tk.Tk):
             cmb.grid(row=r, column=1, columnspan=3, sticky="w", padx=6)
             return cmb
 
-        self.cmb_name = mk_row(0, "Kolom Nama:")
-        self.cmb_no = mk_row(1, "Kolom No HP:")
-        self.cmb_addr = mk_row(2, "Kolom Alamat:")
-        self.cmb_status = mk_row(3, "Kolom Status:")
+        self.cmb_name = mk_row(1, "Kolom Nama:")
+        self.cmb_no = mk_row(2, "Kolom No HP:")
+        self.cmb_addr = mk_row(3, "Kolom Alamat:")
+        self.cmb_status = mk_row(4, "Kolom Status:")
 
         # ===== FILTER STATUS (SEJAJAR DENGAN KOLOM LAIN) =====
         lbl_filter = tk.Label(map_frame, text="Filter Status:", width=20, anchor="w")
