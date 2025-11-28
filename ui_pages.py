@@ -266,14 +266,14 @@ class WATemplateSenderApp(tk.Tk):
         self.btn_load_gs = ttk.Button(self.gsheet_frame, text="Load from Google Sheets", command=self._load_from_gs)
         self.btn_load_gs.grid(row=2, column=3, padx=6, sticky="w")
 
-        # Rows selection
-        tk.Label(controls, text="Rows (start-end):", width=20, anchor="w").grid(row=4, column=0, sticky="w", pady=6)
-        rows_entry_frame = tk.Frame(controls)
-        rows_entry_frame.grid(row=4, column=1, columnspan=3, sticky="ew", padx=6)
-        self.row_start = tk.Entry(rows_entry_frame, width=6)
-        self.row_start.pack(side="left") 
-        self.row_end = tk.Entry(rows_entry_frame, width=6)
-        self.row_end.pack(side="left", padx=(2,0))
+        
+    # --- Rows selection (SEJAJAR DENGAN GOOGLE SHEETS UI) ---
+        tk.Label(self.gsheet_frame, text="Rows (start-end):", width=20, anchor="w")\
+        .grid(row=3, column=0, sticky="w", pady=6)
+        self.row_start = tk.Entry(self.gsheet_frame, width=6)
+        self.row_start.grid(row=3, column=1, sticky="w", padx=(6, 0))
+        self.row_end = tk.Entry(self.gsheet_frame, width=6)
+        self.row_end.grid(row=3, column=2, sticky="w", padx=(0, 0))
 
         # Column mapping area (bigger controls)
         map_frame = tk.Frame(p)
