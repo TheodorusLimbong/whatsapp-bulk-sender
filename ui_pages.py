@@ -236,9 +236,9 @@ class WATemplateSenderApp(tk.Tk):
 
         # --- Excel file UI (shown only if selected_source == 'excel') ---
         # ===== SET LEBAR KOLOM LABEL AGAR SEMUA MUNDUR SERAGAM =====
-        self.excel_frame.grid_columnconfigure(0, minsize=167)  # lebar label kiri
-        self.excel_frame.grid_columnconfigure(1, weight=1)     # kolom input utama
-
+        self.excel_frame.grid_columnconfigure(0, minsize=167)
+        self.excel_frame.grid_columnconfigure(1, weight=4, minsize=447)
+        self.excel_frame.grid_columnconfigure(2, weight=0)
 
         # ===== FILE =====
         tk.Label(self.excel_frame, text="File (CSV/Excel):", anchor="w")\
@@ -250,7 +250,6 @@ class WATemplateSenderApp(tk.Tk):
         self.btn_browse = ttk.Button(self.excel_frame, text="Browse", command=self._browse_file)
         self.btn_browse.grid(row=0, column=2, padx=6, sticky="w")
 
-
         # ===== SHEET =====
         tk.Label(self.excel_frame, text="Sheet:", anchor="w")\
             .grid(row=1, column=0, sticky="w")
@@ -260,9 +259,6 @@ class WATemplateSenderApp(tk.Tk):
 
         self.btn_load_sheet = ttk.Button(self.excel_frame, text="Load Sheet", command=self._load_sheet_from_excel)
         self.btn_load_sheet.grid(row=1, column=2, padx=6, sticky="w")
-
-
-
 
         # --- Google Sheets UI (shown only if selected_source == 'gsheet') ---
         tk.Label(self.gsheet_frame, text="API_KEY:", width=20, anchor="w").grid(row=0, column=0, sticky="w")
