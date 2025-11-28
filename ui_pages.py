@@ -235,18 +235,33 @@ class WATemplateSenderApp(tk.Tk):
 
 
         # --- Excel file UI (shown only if selected_source == 'excel') ---
-        # ---- EXCEL UI ----
-        tk.Label(self.excel_frame, text="File (CSV/Excel):").grid(row=0, column=0, sticky="w")
-        self.entry_file = tk.Entry(self.excel_frame, width=70)
-        self.entry_file.grid(row=0, column=1, padx=6)
-        self.btn_browse = ttk.Button(self.excel_frame, text="Browse", command=self._browse_file)
-        self.btn_browse.grid(row=0, column=2, padx=6)
+        # ===== SET LEBAR KOLOM LABEL AGAR SEMUA MUNDUR SERAGAM =====
+        self.excel_frame.grid_columnconfigure(0, minsize=167)  # lebar label kiri
+        self.excel_frame.grid_columnconfigure(1, weight=1)     # kolom input utama
 
-        tk.Label(self.excel_frame, text="Sheet:").grid(row=1, column=0, sticky="w")
-        self.sheet_combo = ttk.Combobox(self.excel_frame, width=30)
-        self.sheet_combo.grid(row=1, column=1, padx=6)
+
+        # ===== FILE =====
+        tk.Label(self.excel_frame, text="File (CSV/Excel):", anchor="w")\
+            .grid(row=0, column=0, sticky="w")
+
+        self.entry_file = tk.Entry(self.excel_frame)
+        self.entry_file.grid(row=0, column=1, padx=(6, 6), sticky="ew")
+
+        self.btn_browse = ttk.Button(self.excel_frame, text="Browse", command=self._browse_file)
+        self.btn_browse.grid(row=0, column=2, padx=6, sticky="w")
+
+
+        # ===== SHEET =====
+        tk.Label(self.excel_frame, text="Sheet:", anchor="w")\
+            .grid(row=1, column=0, sticky="w")
+
+        self.sheet_combo = ttk.Combobox(self.excel_frame)
+        self.sheet_combo.grid(row=1, column=1, padx=(6, 6), sticky="ew")
+
         self.btn_load_sheet = ttk.Button(self.excel_frame, text="Load Sheet", command=self._load_sheet_from_excel)
-        self.btn_load_sheet.grid(row=1, column=2, padx=6)
+        self.btn_load_sheet.grid(row=1, column=2, padx=6, sticky="w")
+
+
 
 
         # --- Google Sheets UI (shown only if selected_source == 'gsheet') ---
@@ -286,8 +301,7 @@ class WATemplateSenderApp(tk.Tk):
         def mk_row(r, label):
             lbl = tk.Label(map_frame, text=label, width=20, anchor="w")
             lbl.grid(row=r, column=0, sticky="w", pady=6)
-            cmb = ttk.Combobox(map_frame) # ⚠️ Hapus width=50
-            # ⚠️ UBAH: Gunakan sticky="ew" agar input mengisi lebar penuh yang sama
+            cmb = ttk.Combobox(map_frame)
             cmb.grid(row=r, column=1, columnspan=3, sticky="ew", padx=6) 
             return cmb
 
