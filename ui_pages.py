@@ -259,7 +259,7 @@ class WATemplateSenderApp(tk.Tk):
         self.entry_spreadsheet_id.grid(row=1, column=1, padx=6, columnspan=3, sticky="ew")
         
         self.btn_getsheets = ttk.Button(self.gsheet_frame, text="Get Sheet List", command=self._get_gs_sheets)
-        self.btn_getsheets.grid(row=2, column=0, sticky="w", pady=4) 
+        self.btn_getsheets.grid(row=1, column=4, sticky="w", pady=4) 
         
         self.gs_sheet_combo = ttk.Combobox(self.gsheet_frame) 
         self.gs_sheet_combo.grid(row=2, column=1, padx=6, columnspan=2, sticky="ew") 
@@ -267,15 +267,13 @@ class WATemplateSenderApp(tk.Tk):
         self.btn_load_gs.grid(row=2, column=3, padx=6, sticky="w")
 
         # Rows selection
-        tk.Label(controls, text="Rows (start-end):", width=20, anchor="w").grid(row=4, column=0, sticky="w", pady=6) 
-        
+        tk.Label(controls, text="Rows (start-end):", width=20, anchor="w").grid(row=4, column=0, sticky="w", pady=6)
         rows_entry_frame = tk.Frame(controls)
         rows_entry_frame.grid(row=4, column=1, columnspan=3, sticky="ew", padx=6)
-        
         self.row_start = tk.Entry(rows_entry_frame, width=6)
         self.row_start.pack(side="left") 
         self.row_end = tk.Entry(rows_entry_frame, width=6)
-        self.row_end.pack(side="left", padx=(6,0))
+        self.row_end.pack(side="left", padx=(2,0))
 
         # Column mapping area (bigger controls)
         map_frame = tk.Frame(p)
