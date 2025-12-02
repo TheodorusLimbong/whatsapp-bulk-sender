@@ -226,6 +226,22 @@ class WATemplateSenderApp(tk.Tk):
         controls = tk.Frame(p)
         controls.pack(fill="x", padx=10, pady=6)
 
+        controls.grid_columnconfigure(0, minsize=167)
+        controls.grid_columnconfigure(1, weight=4, minsize=440)
+
+        tk.Label(controls, text="Rows (start-end):", width=20, anchor="w")\
+            .grid(row=3, column=0, sticky="w", pady=6)
+
+        rows_frame = tk.Frame(controls)
+        rows_frame.grid(row=3, column=1, sticky="w", padx=(6, 0))
+
+        self.row_start = tk.Entry(rows_frame, width=6)
+        self.row_start.pack(side="left", padx=(0, 4))
+
+        self.row_end = tk.Entry(rows_frame, width=6)
+        self.row_end.pack(side="left", padx=(0, 0))
+
+
         # ==== NEW: frame khusus excel & gsheet ====
         self.excel_frame = tk.Frame(controls)
         self.excel_frame.grid(row=0, column=0, columnspan=10, sticky="w")
@@ -285,18 +301,6 @@ class WATemplateSenderApp(tk.Tk):
         self.gsheet_frame.columnconfigure(3, weight=1)
         self.gsheet_frame.columnconfigure(4, weight=0)
 
-
-        
-    # --- Rows selection (SEJAJAR DENGAN GOOGLE SHEETS UI) ---
-        tk.Label(self.gsheet_frame, text="Rows (start-end):", width=20, anchor="w")\
-            .grid(row=3, column=0, sticky="w", pady=6)
-
-        rows_frame = tk.Frame(self.gsheet_frame)
-        rows_frame.grid(row=3, column=1, sticky="w", padx=(6, 0))
-        self.row_start = tk.Entry(rows_frame, width=6)
-        self.row_start.pack(side="left", padx=(0, 4))
-        self.row_end = tk.Entry(rows_frame, width=6)
-        self.row_end.pack(side="left", padx=(0, 0))
 
 
         # Column mapping area (bigger controls)
