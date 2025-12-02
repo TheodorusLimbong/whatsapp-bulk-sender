@@ -269,15 +269,21 @@ class WATemplateSenderApp(tk.Tk):
         tk.Label(self.gsheet_frame, text="SPREADSHEET_ID:", width=20, anchor="w").grid(row=1, column=0, sticky="w")
         self.entry_spreadsheet_id = tk.Entry(self.gsheet_frame, width=53)
         self.entry_spreadsheet_id.grid(row=1, column=1, padx=6, columnspan=3, sticky="ew")
-        
+
         self.btn_getsheets = ttk.Button(self.gsheet_frame, text="Get Sheet List", command=self._get_gs_sheets)
-        self.btn_getsheets.grid(row=1, column=4, sticky="w", pady=4) 
-        
-        self.gs_sheet_combo = ttk.Combobox(self.gsheet_frame) 
-        self.gs_sheet_combo.grid(row=2, column=1, padx=6, columnspan=2, sticky="ew") 
+        self.btn_getsheets.grid(row=1, column=4, sticky="w", padx=6)
+
+        self.gs_sheet_combo = ttk.Combobox(self.gsheet_frame)
+        self.gs_sheet_combo.grid(row=2, column=1, padx=6, columnspan=3, sticky="ew")
+
         self.btn_load_gs = ttk.Button(self.gsheet_frame, text="Load from Google Sheets", command=self._load_from_gs)
-        self.btn_load_gs.grid(row=2, column=3, padx=6, sticky="w",)
+        self.btn_load_gs.grid(row=2, column=4, sticky="w", padx=6)
+
+        # Buat kolom 1 sampai 3 melebar, kolom 4 tetap ukuran tombol
         self.gsheet_frame.columnconfigure(1, weight=1)
+        self.gsheet_frame.columnconfigure(2, weight=1)
+        self.gsheet_frame.columnconfigure(3, weight=1)
+        self.gsheet_frame.columnconfigure(4, weight=0)
 
 
         
