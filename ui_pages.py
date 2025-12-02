@@ -317,18 +317,25 @@ class WATemplateSenderApp(tk.Tk):
         self.cmb_name = mk_row(1, "Kolom Nama:")
         self.cmb_no = mk_row(2, "Kolom No HP:")
         self.cmb_addr = mk_row(3, "Kolom Alamat:")
-        self.cmb_status = mk_row(4, "Kolom Status:")
 
-        # ===== FILTER STATUS (SEJAJAR DENGAN KOLOM LAIN) =====
-        lbl_filter = tk.Label(map_frame, text="Filter Status:", width=20, anchor="w")
-        lbl_filter.grid(row=4, column=0, sticky="w", pady=6)
+        # === PILIH KOLOM STATUS ===
+        tk.Label(map_frame, text="Kolom Status:", width=20, anchor="w")\
+            .grid(row=4, column=0, sticky="w", pady=6)
+
+        self.cmb_status_col = ttk.Combobox(map_frame)
+        self.cmb_status_col.grid(row=4, column=1, columnspan=3, sticky="ew", padx=6)
+        self.cmb_status_col.bind("<<ComboboxSelected>>", self._on_status_col_selected)
+
+        # === FILTER NILAI STATUS ===
+        tk.Label(map_frame, text="Filter Status:", width=20, anchor="w")\
+            .grid(row=5, column=0, sticky="w", pady=6)
 
         self.filter_status_combo = ttk.Combobox(map_frame, width=50)
-        self.filter_status_combo.grid(row=4, column=1, columnspan=3, sticky="w", padx=6)
+        self.filter_status_combo.grid(row=5, column=1, columnspan=3, sticky="w", padx=6)
 
         # Tombol otomatis tetap di bawah rapi
         btn_auto_map = ttk.Button(map_frame, text="Isi Kolom Otomatis", command=self._auto_map_cols)
-        btn_auto_map.grid(row=5, column=1, pady=10, sticky="w")
+        btn_auto_map.grid(row=6, column=1, pady=10, sticky="w")
 
 
         # Status Pengambilan filter dropdown (A option)
@@ -338,10 +345,6 @@ class WATemplateSenderApp(tk.Tk):
         # tk.Label(filter_frame, text="Filter Status:", anchor="w").pack(side="left", padx=10)
         # self.filter_status_combo = ttk.Combobox(filter_frame, width=30)
         # self.filter_status_combo.pack(side="left", padx=6)
-
-
-        btn_auto_map = ttk.Button(map_frame, text="Isi Kolom Otomatis", command=self._auto_map_cols)
-        btn_auto_map.grid(row=5, column=1, pady=8, sticky="w")
 
         # Delay controls
         delay_frame = tk.Frame(p)
@@ -469,8 +472,8 @@ class WATemplateSenderApp(tk.Tk):
     # ---------------------------
     def _get_gs_sheets(self):
         self.reset_log()
-        api = self.entry_api.get().strip()
-        ss = self.entry_ss.get().strip()
+        api = self.entry_api_key.get().strip()
+        ss = self.entry_spreadsheet_id.get().strip()
         if not api or not ss:
             messagebox.showwarning("Missing", "Isi API_KEY dan SPREADSHEET_ID.")
             return
@@ -530,46 +533,74 @@ class WATemplateSenderApp(tk.Tk):
     # ---------------------------
     def _after_load(self):
         cols = list(self.df.columns)
-        for cmb in (self.cmb_name, self.cmb_no, self.cmb_addr, self.cmb_status):
+
+        # isi dropdown mapping utama
+        for cmb in (self.cmb_name, self.cmb_no, self.cmb_addr):
             cmb['values'] = cols
-                # NEW: auto fill unique status
-        try:
-            status_col = self.cmb_status.get()
-            if status_col in self.df.columns:
-                unique_status = sorted(self.df[status_col].dropna().unique().astype(str))
-                self.filter_status_combo['values'] = [""] + unique_status
-                self.filter_status_combo.set("")  # default no filter
-        except:
-            pass
+
+        # isi pilihan KOLOM STATUS saja (bukan nilai)
+        self.cmb_status_col['values'] = cols
+        self.cmb_status_col.set("")
+
+
+        # reset filter status
+        self.filter_status_combo.set("")
+        self.filter_status_combo['values'] = []
+
 
         self.log(f"Data loaded. Columns: {cols}")
         self.status_label.config(text="Data loaded")
         # select sensible defaults
         self._auto_map_cols()
-        self._update_filter_status_options()
 
+    def _on_status_col_selected(self, event=None):
+        col = self.cmb_status_col.get()
+        if not col or self.df is None or col not in self.df.columns:
+            self.filter_status_combo['values'] = []
+            self.filter_status_combo.set("")
+            return
+
+        values = (
+            self.df[col]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .sort_values()
+            .unique()
+            .tolist()
+            )
+
+        self.filter_status_combo['values'] = [""] + values
+        self.filter_status_combo.set("")
 
     def _auto_map_cols(self):
         if self.df is None:
-            messagebox.showwarning("No data", "Load data terlebih dulu.")
             return
+
         cols_lower = [c.lower() for c in self.df.columns]
+
         def find_like(keys):
             for k in keys:
-                for i,c in enumerate(cols_lower):
+                for i, c in enumerate(cols_lower):
                     if k in c:
                         return self.df.columns[i]
             return ""
+
         self.cmb_name.set(find_like(['name','nama','nm']))
         self.cmb_no.set(find_like(['phone','hp','no','tel']))
         self.cmb_addr.set(find_like(['alamat','address','addr']))
-        self.cmb_status.set(find_like(['status']))
-        self._update_filter_status_options()
+
+        # ISI PILIHAN KOLOM STATUS SAJA
+        self.cmb_status_col['values'] = list(self.df.columns)
+        self.cmb_status_col.set("")
+        self.filter_status_combo.set("")
+        self.filter_status_combo['values'] = []
+
 
     def _update_filter_status_options(self):
         """Mengisi filter_status_combo berdasarkan kolom status yang dipilih."""
         try:
-            col = self.cmb_status.get()
+            col = self.cmb_status_col.get()
             if not col or self.df is None:
                 return
 
@@ -609,7 +640,7 @@ class WATemplateSenderApp(tk.Tk):
 
             # Filter status
             if filter_status:
-                if str(row.get(self.cmb_status.get(), "")).strip() != filter_status:
+                if str(row.get(self.cmb_status_col.get(), "")).strip() != filter_status:
                     continue
 
             # Validasi nomor HP
@@ -708,7 +739,7 @@ class WATemplateSenderApp(tk.Tk):
                 # FILTER STATUS
                 # -------------------------
                 if filter_status_val:
-                    row_status = str(row.get(self.cmb_status.get(), "")).strip()
+                    row_status = str(row.get(self.cmb_status_col.get(), "")).strip()
                     if row_status != filter_status_val:
                         self.skipped += 1
                         self.log(f"Row {actual_row} skipped (status mismatch)")
