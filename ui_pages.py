@@ -20,7 +20,7 @@ WINDOW_H = 768
 class WATemplateSenderApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Whatsapp Automation")
+        self.title("Whatsapp Dismantle Automation")
         # center geometry
         x = (self.winfo_screenwidth() - WINDOW_W) // 2
         y = (self.winfo_screenheight() - WINDOW_H) // 2
@@ -130,7 +130,7 @@ class WATemplateSenderApp(tk.Tk):
         lbl_title = tk.Label(body, text="Welcome", font=("Segoe UI", title_size, "bold"), bg="white")
         lbl_title.pack(pady=(40, 0))
 
-        lbl_sub = tk.Label(body, text="To\nWhatsApp Automation", font=("Segoe UI", 28), bg="white", justify="center")
+        lbl_sub = tk.Label(body, text="To\nWhatsApp Dismantle Automation", font=("Segoe UI", 28), bg="white", justify="center")
         lbl_sub.pack(pady=(8, 20))
 
         btn_next = ttk.Button(
