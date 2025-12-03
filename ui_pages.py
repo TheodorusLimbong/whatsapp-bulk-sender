@@ -32,6 +32,7 @@ class WATemplateSenderApp(tk.Tk):
         self.excel_path = None
         self.selected_source = None  # 'excel' or 'gsheet' - set from page2
         self.sending_thread = None
+        self.last_page = None
         self.stop_event = threading.Event()
 
         # stats
@@ -94,15 +95,24 @@ class WATemplateSenderApp(tk.Tk):
         self._build_main_page()
 
     def show_welcome(self):
+        self.last_page = self.page_welcome
         self.page_welcome.lift()
 
     def show_source(self):
+        self.last_page = self.page_source
         self.page_source.lift()
 
     def show_main(self):
+        self.last_page = self.page_main
         # update main page widgets according to selected_source
         self._refresh_main_source_ui()
         self.page_main.lift()
+
+    def safe_show_page(self, page):
+        """Thread-safe lift page."""
+        if page:
+            self.after(0, lambda: page.lift())
+
 
     # ---------------------------
     # Welcome page
@@ -490,8 +500,8 @@ class WATemplateSenderApp(tk.Tk):
 
     def _load_from_gs(self):
         self.reset_log()
-        api = self.entry_api.get().strip()
-        ss = self.entry_ss.get().strip()
+        api = self.entry_api_key.get().strip()
+        ss = self.entry_spreadsheet_id.get().strip()
         sheet = self.gs_sheet_combo.get().strip()
 
         if not (api and ss and sheet):
@@ -822,6 +832,15 @@ class WATemplateSenderApp(tk.Tk):
             self.status_label.config(text="Idle")
             self.log("Sending finished.")
             self._update_stats()
+
+            if self.last_page:
+                def bring_last_page():
+                    self.last_page.lift()
+                    self.last_page.focus_force()
+                    self.attributes('-topmost', True)
+                    self.attributes('-topmost', False)  # reset supaya user bisa klik window lain
+                self.after(0, bring_last_page)
+
 
 
     # ---------------------------
