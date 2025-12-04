@@ -716,8 +716,26 @@ class WATemplateSenderApp(tk.Tk):
     
     def _send_worker(self):
         rows_total = len(self.df)
-        self.progress['maximum'] = rows_total
-        self.log(f"Start sending. Total rows: {rows_total}")
+        rows_total = len(self.df)
+        try:
+            start_idx = int(self.row_start.get()) if self.row_start.get().strip() else 1
+        except:
+            start_idx = 1
+
+        try:
+            end_idx = int(self.row_end.get()) if self.row_end.get().strip() else rows_total
+        except:
+            end_idx = rows_total
+
+        start_idx = max(1, start_idx)
+        end_idx = min(rows_total, end_idx)
+
+        total_to_process = max(0, end_idx - start_idx + 1)
+
+        self.progress['maximum'] = total_to_process
+        self.progress['value'] = 0
+
+        self.log(f"Start sending. Range rows: {start_idx}..{end_idx} | Total: {total_to_process}")
         self.status_label.config(text="Running")
 
         start_idx = int(self.row_start.get()) if self.row_start.get().strip() else 1
@@ -829,6 +847,7 @@ class WATemplateSenderApp(tk.Tk):
                     break
 
         finally:
+            self.progress['value'] = self.progress['maximum'] 
             self.status_label.config(text="Idle")
             self.log("Sending finished.")
             self._update_stats()
