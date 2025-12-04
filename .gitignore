@@ -1,5 +1,0 @@
-dist/
-build/
-*.exe
-*.spec
-__pycache__/
