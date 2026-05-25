@@ -1,4 +1,3 @@
-#test
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 import pandas as pd
@@ -12,36 +11,41 @@ import os
 import json
 from utils import normalize_phone
 from logic_worker import thread_safe_askstring, thread_safe_update_label
+from i18n import lang
 
-# Window size chosen: 1366 x 768 (not too tall)
 WINDOW_W = 1366
 WINDOW_H = 768
 
-class WATemplateSenderApp(tk.Tk):
+
+class WhatsAppBulkSenderApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Whatsapp Dismantle Automation")
-        # center geometry
+        self.title("WhatsApp Bulk Sender")
         x = (self.winfo_screenwidth() - WINDOW_W) // 2
         y = (self.winfo_screenheight() - WINDOW_H) // 2
         self.geometry(f"{WINDOW_W}x{WINDOW_H}+{x}+{y}")
         self.minsize(1000, 600)
 
-        # state
         self.df = None
         self.excel_path = None
-        self.selected_source = None  # 'excel' or 'gsheet' - set from page2
+        self.selected_source = None
         self.sending_thread = None
         self.last_page = None
         self.stop_event = threading.Event()
 
-        # stats
         self.success = 0
         self.fail = 0
         self.skipped = 0
 
+        self.container = tk.Frame(self)
+        self.container.pack(fill="both", expand=True)
+
+        self.page_welcome = None
+        self.page_source = None
+        self.page_main = None
+
         self._build_pages()
-        self.show_welcome()
+
         self._load_gsheet_config()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -57,12 +61,10 @@ class WATemplateSenderApp(tk.Tk):
                     data = json.load(f)
                     self.entry_api_key.delete(0, tk.END)
                     self.entry_api_key.insert(0, data.get("api_key", ""))
-
                     self.entry_spreadsheet_id.delete(0, tk.END)
                     self.entry_spreadsheet_id.insert(0, data.get("spreadsheet_id", ""))
         except Exception as e:
             self.log(f"Config load error: {e}")
-
 
     def _save_gsheet_config(self):
         try:
@@ -75,13 +77,14 @@ class WATemplateSenderApp(tk.Tk):
         except Exception as e:
             self.log(f"Config save error: {e}")
 
-
     # ---------------------------
     # Pages: build and navigation
     # ---------------------------
     def _build_pages(self):
-        self.container = tk.Frame(self)
-        self.container.pack(fill="both", expand=True)
+        if self.page_welcome:
+            self.page_welcome.destroy()
+            self.page_source.destroy()
+            self.page_main.destroy()
 
         self.page_welcome = tk.Frame(self.container, bg="white")
         self.page_source = tk.Frame(self.container, bg="white")
@@ -93,6 +96,7 @@ class WATemplateSenderApp(tk.Tk):
         self._build_welcome_page()
         self._build_source_page()
         self._build_main_page()
+        self.show_welcome()
 
     def show_welcome(self):
         self.last_page = self.page_welcome
@@ -104,15 +108,16 @@ class WATemplateSenderApp(tk.Tk):
 
     def show_main(self):
         self.last_page = self.page_main
-        # update main page widgets according to selected_source
         self._refresh_main_source_ui()
         self.page_main.lift()
 
     def safe_show_page(self, page):
-        """Thread-safe lift page."""
         if page:
             self.after(0, lambda: page.lift())
 
+    def _switch_language(self, new_lang):
+        lang.lang = new_lang
+        self._build_pages()
 
     # ---------------------------
     # Welcome page
@@ -125,29 +130,35 @@ class WATemplateSenderApp(tk.Tk):
         body = tk.Frame(p, bg="white")
         body.pack(fill="both", expand=True)
 
-        # responsive font size (example)
         title_size = min(86, max(36, WINDOW_H // 12))
-        lbl_title = tk.Label(body, text="Welcome", font=("Segoe UI", title_size, "bold"), bg="white")
+        lbl_title = tk.Label(body, text=lang.tr("welcome_title"), font=("Segoe UI", title_size, "bold"), bg="white")
         lbl_title.pack(pady=(40, 0))
 
-        lbl_sub = tk.Label(body, text="To\nWhatsApp Dismantle Automation", font=("Segoe UI", 28), bg="white", justify="center")
+        lbl_sub = tk.Label(body, text=lang.tr("welcome_subtitle"), font=("Segoe UI", 28), bg="white", justify="center")
         lbl_sub.pack(pady=(8, 20))
+
+        lang_frame = tk.Frame(body, bg="white")
+        lang_frame.pack(pady=10)
+        tk.Label(lang_frame, text="Language / Bahasa:", font=("Segoe UI", 12), bg="white").pack(side="left", padx=(0, 10))
+        lang_combo = ttk.Combobox(lang_frame, values=lang.get_lang_options(), state="readonly", width=10)
+        lang_combo.set(lang.lang)
+        lang_combo.pack(side="left")
+        lang_combo.bind("<<ComboboxSelected>>", lambda e: self._switch_language(lang_combo.get()))
 
         btn_next = ttk.Button(
             body,
-            text="Next",
+            text=lang.tr("btn_next"),
             command=self.show_source
         )
-        btn_next.pack(pady=20, ipadx=25, ipady=22)   # memperbesar fisik tombol
+        btn_next.pack(pady=20, ipadx=25, ipady=22)
         btn_next.configure(width=30)
         btn_next.focus_set()
         self.bind('<Return>', lambda e: self.show_source())
 
         footer = tk.Frame(p, height=50, bg="white")
         footer.pack(side="bottom", fill="x")
-        lbl_footer = tk.Label(footer, text="© Iconnet. All rights reserved", bg="white")
+        lbl_footer = tk.Label(footer, text=lang.tr("footer"), bg="white")
         lbl_footer.pack(side="bottom", pady=6)
-
 
     # ---------------------------
     # Source page (page 2)
@@ -157,7 +168,6 @@ class WATemplateSenderApp(tk.Tk):
         header = tk.Frame(p, height=80, bg="white")
         header.pack(fill="x")
 
-        # ===== STYLE TOMBOL BESAR (AMAN DITARUH DI SINI) =====
         style = ttk.Style()
         style.configure(
             "Large.TButton",
@@ -165,16 +175,13 @@ class WATemplateSenderApp(tk.Tk):
             padding=14
         )
 
-        # ===== TOMBOL BACK (DIPERBESAR) =====
-        btn_back = ttk.Button(header, text="← Back", command=self.show_welcome)
+        btn_back = ttk.Button(header, text=lang.tr("btn_back"), command=self.show_welcome)
         btn_back.pack(side="left", padx=14, pady=6)
         btn_back.configure(width=10)
 
-
-        # ===== JUDUL =====
         lbl = tk.Label(
             p,
-            text="Pilih Inputan Data yang akan di proses",
+            text=lang.tr("select_source"),
             font=("Segoe UI", 24, "bold"),
             bg="white"
         )
@@ -183,34 +190,30 @@ class WATemplateSenderApp(tk.Tk):
         box = tk.Frame(p, bg="white")
         box.pack(expand=True)
 
-        # ===== TOMBOL GOOGLE SHEETS & EXCEL (DIPERBESAR) =====
         btn_gsheet = ttk.Button(
             box,
-            text="Google Sheets",
+            text=lang.tr("btn_gsheet"),
             command=lambda: self._select_source_and_continue("gsheet"),
             style="Large.TButton"
         )
 
         btn_excel = ttk.Button(
             box,
-            text="Excel (.xlsx)",
+            text=lang.tr("btn_excel"),
             command=lambda: self._select_source_and_continue("excel"),
             style="Large.TButton"
         )
 
-        # ===== POSISI TOMBOL =====
         btn_gsheet.grid(row=0, column=0, padx=100, pady=40, ipadx=20, ipady=14)
         btn_excel.grid(row=0, column=1, padx=100, pady=40, ipadx=20, ipady=14)
 
         footer = tk.Frame(p, height=40, bg="white")
         footer.pack(side="bottom", fill="x")
-        tk.Label(footer, text="© Iconnet. All rights reserved", bg="white").pack(side="bottom", pady=6)
+        tk.Label(footer, text=lang.tr("footer"), bg="white").pack(side="bottom", pady=6)
 
     def _select_source_and_continue(self, mode):
         self.reset_log()
-        # mode is "excel" or "gsheet"
         self.selected_source = mode
-        # clear previous loaded data state
         self.df = None
         self.excel_path = None
         self.show_main()
@@ -221,25 +224,23 @@ class WATemplateSenderApp(tk.Tk):
     def _build_main_page(self):
         p = self.page_main
 
-        # top frame holds back button + source label
         topbar = tk.Frame(p)
         topbar.pack(fill="x", padx=10, pady=6)
 
-        btn_back_main = ttk.Button(topbar, text="← Back", command=self._back_to_source)
+        btn_back_main = ttk.Button(topbar, text=lang.tr("btn_back"), command=self._back_to_source)
         btn_back_main.pack(side="left", padx=4)
         btn_back_main.configure(width=10)
 
-        self.source_label = tk.Label(topbar, text="Source: -", font=("Segoe UI", 10, "bold"))
+        self.source_label = tk.Label(topbar, text=f"{lang.tr('source')}: -", font=("Segoe UI", 10, "bold"))
         self.source_label.pack(side="left", padx=8)
 
-        # content frames
         controls = tk.Frame(p)
         controls.pack(fill="x", padx=10, pady=6)
 
         controls.grid_columnconfigure(0, minsize=167)
         controls.grid_columnconfigure(1, weight=4, minsize=440)
 
-        tk.Label(controls, text="Rows (start-end):", width=20, anchor="w")\
+        tk.Label(controls, text=lang.tr("rows_start_end"), width=20, anchor="w")\
             .grid(row=3, column=0, sticky="w", pady=6)
 
         rows_frame = tk.Frame(controls)
@@ -251,186 +252,145 @@ class WATemplateSenderApp(tk.Tk):
         self.row_end = tk.Entry(rows_frame, width=6)
         self.row_end.pack(side="left", padx=(0, 0))
 
-
-        # ==== NEW: frame khusus excel & gsheet ====
         self.excel_frame = tk.Frame(controls)
         self.excel_frame.grid(row=0, column=0, columnspan=10, sticky="w")
 
         self.gsheet_frame = tk.Frame(controls)
         self.gsheet_frame.grid(row=1, column=0, columnspan=10, sticky="w")
 
-
-        # --- Excel file UI (shown only if selected_source == 'excel') ---
-        # ===== SET LEBAR KOLOM LABEL AGAR SEMUA MUNDUR SERAGAM =====
+        # --- Excel file UI ---
         self.excel_frame.grid_columnconfigure(0, minsize=167)
         self.excel_frame.grid_columnconfigure(1, weight=4, minsize=440)
         self.excel_frame.grid_columnconfigure(2, weight=0)
 
-        # ===== FILE =====
-        tk.Label(self.excel_frame, text="File (CSV/Excel):", anchor="w")\
+        tk.Label(self.excel_frame, text=lang.tr("file_csv_excel"), anchor="w")\
             .grid(row=0, column=0, sticky="w")
 
         self.entry_file = tk.Entry(self.excel_frame)
         self.entry_file.grid(row=0, column=1, padx=(6, 6), sticky="ew")
 
-        self.btn_browse = ttk.Button(self.excel_frame, text="Browse", command=self._browse_file)
+        self.btn_browse = ttk.Button(self.excel_frame, text=lang.tr("btn_browse"), command=self._browse_file)
         self.btn_browse.grid(row=0, column=2, padx=6, sticky="w")
 
-        # ===== SHEET =====
-        tk.Label(self.excel_frame, text="Sheet:", anchor="w")\
+        tk.Label(self.excel_frame, text=lang.tr("sheet"), anchor="w")\
             .grid(row=1, column=0, sticky="w")
 
         self.sheet_combo = ttk.Combobox(self.excel_frame)
         self.sheet_combo.grid(row=1, column=1, padx=(6, 6), sticky="ew")
 
-        self.btn_load_sheet = ttk.Button(self.excel_frame, text="Load Sheet", command=self._load_sheet_from_excel)
+        self.btn_load_sheet = ttk.Button(self.excel_frame, text=lang.tr("btn_load_sheet"), command=self._load_sheet_from_excel)
         self.btn_load_sheet.grid(row=1, column=2, padx=6, sticky="w")
 
-
-        # --- Google Sheets UI (shown only if selected_source == 'gsheet') ---
-        tk.Label(self.gsheet_frame, text="API_KEY:", width=20, anchor="w").grid(row=0, column=0, sticky="w")
+        # --- Google Sheets UI ---
+        tk.Label(self.gsheet_frame, text=lang.tr("api_key"), width=20, anchor="w").grid(row=0, column=0, sticky="w")
         self.entry_api_key = tk.Entry(self.gsheet_frame, width=53)
-        self.entry_api_key.grid(row=0, column=1, padx=6, columnspan=3, sticky="ew") 
+        self.entry_api_key.grid(row=0, column=1, padx=6, columnspan=3, sticky="ew")
 
-        tk.Label(self.gsheet_frame, text="SPREADSHEET_ID:", width=20, anchor="w").grid(row=1, column=0, sticky="w")
+        tk.Label(self.gsheet_frame, text=lang.tr("spreadsheet_id"), width=20, anchor="w").grid(row=1, column=0, sticky="w")
         self.entry_spreadsheet_id = tk.Entry(self.gsheet_frame, width=53)
         self.entry_spreadsheet_id.grid(row=1, column=1, padx=6, columnspan=3, sticky="ew")
 
-        self.btn_getsheets = ttk.Button(self.gsheet_frame, text="Get Sheet List", command=self._get_gs_sheets)
+        self.btn_getsheets = ttk.Button(self.gsheet_frame, text=lang.tr("btn_get_sheets"), command=self._get_gs_sheets)
         self.btn_getsheets.grid(row=1, column=4, sticky="w", padx=6)
 
         self.gs_sheet_combo = ttk.Combobox(self.gsheet_frame)
         self.gs_sheet_combo.grid(row=2, column=1, padx=6, columnspan=3, sticky="ew")
 
-        self.btn_load_gs = ttk.Button(self.gsheet_frame, text="Load from Google Sheets", command=self._load_from_gs)
+        self.btn_load_gs = ttk.Button(self.gsheet_frame, text=lang.tr("btn_load_gs"), command=self._load_from_gs)
         self.btn_load_gs.grid(row=2, column=4, sticky="w", padx=6)
 
-        # Buat kolom 1 sampai 3 melebar, kolom 4 tetap ukuran tombol
         self.gsheet_frame.columnconfigure(1, weight=1)
         self.gsheet_frame.columnconfigure(2, weight=1)
         self.gsheet_frame.columnconfigure(3, weight=1)
         self.gsheet_frame.columnconfigure(4, weight=0)
 
-
-
-        # Column mapping area (bigger controls)
+        # Column mapping area
         map_frame = tk.Frame(p)
-        map_frame.pack(fill="x", padx=12, pady=(6,0))
+        map_frame.pack(fill="x", padx=12, pady=(6, 0))
 
         def mk_row(r, label):
             lbl = tk.Label(map_frame, text=label, width=20, anchor="w")
             lbl.grid(row=r, column=0, sticky="w", pady=6)
             cmb = ttk.Combobox(map_frame)
-            cmb.grid(row=r, column=1, columnspan=3, sticky="ew", padx=6) 
+            cmb.grid(row=r, column=1, columnspan=3, sticky="ew", padx=6)
             return cmb
 
-        self.cmb_name = mk_row(1, "Kolom Nama:")
-        self.cmb_no = mk_row(2, "Kolom No HP:")
-        self.cmb_addr = mk_row(3, "Kolom Alamat:")
+        self.cmb_name = mk_row(1, lang.tr("col_name"))
+        self.cmb_no = mk_row(2, lang.tr("col_phone"))
+        self.cmb_addr = mk_row(3, lang.tr("col_address"))
 
-        # === PILIH KOLOM STATUS ===
-        tk.Label(map_frame, text="Kolom Status:", width=20, anchor="w")\
+        tk.Label(map_frame, text=lang.tr("col_status"), width=20, anchor="w")\
             .grid(row=4, column=0, sticky="w", pady=6)
 
         self.cmb_status_col = ttk.Combobox(map_frame)
         self.cmb_status_col.grid(row=4, column=1, columnspan=3, sticky="ew", padx=6)
         self.cmb_status_col.bind("<<ComboboxSelected>>", self._on_status_col_selected)
 
-        # === FILTER NILAI STATUS ===
-        tk.Label(map_frame, text="Filter Status:", width=20, anchor="w")\
+        tk.Label(map_frame, text=lang.tr("filter_status"), width=20, anchor="w")\
             .grid(row=5, column=0, sticky="w", pady=6)
 
         self.filter_status_combo = ttk.Combobox(map_frame, width=50)
         self.filter_status_combo.grid(row=5, column=1, columnspan=3, sticky="w", padx=6)
 
-        # Tombol otomatis tetap di bawah rapi
-        btn_auto_map = ttk.Button(map_frame, text="Isi Kolom Otomatis", command=self._auto_map_cols)
+        btn_auto_map = ttk.Button(map_frame, text=lang.tr("btn_auto_map"), command=self._auto_map_cols)
         btn_auto_map.grid(row=6, column=1, pady=10, sticky="w")
-
-
-        # Status Pengambilan filter dropdown (A option)
-        # filter_frame = tk.Frame(p)
-        # filter_frame.pack(fill="x", padx=12, pady=(6,0))
-        # # NEW: Filter Status otomatis (untuk kolom status biasa)
-        # tk.Label(filter_frame, text="Filter Status:", anchor="w").pack(side="left", padx=10)
-        # self.filter_status_combo = ttk.Combobox(filter_frame, width=30)
-        # self.filter_status_combo.pack(side="left", padx=6)
 
         # Delay controls
         delay_frame = tk.Frame(p)
         delay_frame.pack(fill="x", padx=12, pady=6)
-        tk.Label(delay_frame, text="Delay per message (seconds) min:").grid(row=0, column=0, sticky="w")
+        tk.Label(delay_frame, text=lang.tr("delay_min")).grid(row=0, column=0, sticky="w")
         self.delay_min = tk.Entry(delay_frame, width=6)
         self.delay_min.insert(0, "3")
         self.delay_min.grid(row=0, column=1, sticky="w")
-        tk.Label(delay_frame, text="max:").grid(row=0, column=2, sticky="w", padx=(8,0))
+        tk.Label(delay_frame, text=lang.tr("delay_max")).grid(row=0, column=2, sticky="w", padx=(8, 0))
         self.delay_max = tk.Entry(delay_frame, width=6)
         self.delay_max.insert(0, "5")
         self.delay_max.grid(row=0, column=3, sticky="w")
 
-        # --- SPLIT LEFT (Template) & RIGHT (Log) ---
+        # Split left (template) and right (log)
         split_frame = tk.Frame(p)
         split_frame.pack(fill="both", expand=True, padx=12, pady=6)
 
-        # ========== LEFT: Template Pesan ==========
         left_frame = tk.Frame(split_frame)
         left_frame.pack(side="left", fill="both", expand=True)
 
-        tk.Label(left_frame, text="Template pesan (pakai {nama}, {no_hp}, {alamat}):").pack(anchor="w")
+        tk.Label(left_frame, text=lang.tr("template_label")).pack(anchor="w")
         self.template_text = tk.Text(left_frame, height=3, width=50)
-        default_template = (
-            "Selamat Pagi, Saya dari pihak Iconnet ingin melakukan Dismantle/Penarikan Modem, mohon maaf jika pesan ini "
-            "sudah pernah terkirim sebelumnya. Dikarenakan adanya kesalahan teknis yang menyebabkan pelanggan dihubungi lebih dari sekali.\n\n"
-            "Nama  : {nama}\nNo HP : {no_hp}\nAlamat: {alamat}\n\n"
-            "Apakah anda sedang ada ditempat, atau kami bisa mendapatkan waktu lain untuk pengambilan modem?\nTerima kasih atas perhatian dan kerja samanya🙏"
-        )
-        self.template_text.insert("1.0", default_template)
+        self.template_text.insert("1.0", lang.tr("default_template"))
         self.template_text.pack(fill="both", expand=True, pady=(0, 6))
 
-        # ========== RIGHT: Log Area ==========
         right_frame = tk.Frame(split_frame)
-        right_frame.pack(side="left", fill="both", expand=True, padx=(12,0))
+        right_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
 
-        tk.Label(right_frame, text="Log / Preview:").pack(anchor="w")
+        tk.Label(right_frame, text=lang.tr("log_preview")).pack(anchor="w")
         self.log_text = tk.Text(right_frame, height=3, width=50)
         self.log_text.pack(fill="both", expand=True)
 
-        # Buttons large
         btns_frame = tk.Frame(p)
         btns_frame.pack(fill="x", padx=12, pady=6)
-        self.btn_preview = ttk.Button(btns_frame, text="Preview (5 rows)", command=self._preview, width=20)
+        self.btn_preview = ttk.Button(btns_frame, text=lang.tr("btn_preview"), command=self._preview, width=20)
         self.btn_preview.pack(side="left", padx=6)
-        self.btn_start = ttk.Button(btns_frame, text="Start Sending", command=self._start_sending, width=20)
+        self.btn_start = ttk.Button(btns_frame, text=lang.tr("btn_start"), command=self._start_sending, width=20)
         self.btn_start.pack(side="left", padx=6)
-        self.btn_stop = ttk.Button(btns_frame, text="Stop", command=self._stop_sending, width=12)
+        self.btn_stop = ttk.Button(btns_frame, text=lang.tr("btn_stop"), command=self._stop_sending, width=12)
         self.btn_stop.pack(side="left", padx=6)
 
-        # Progress & status
         prog_frame = tk.Frame(p)
         prog_frame.pack(fill="x", padx=12, pady=6)
-        tk.Label(prog_frame, text="Progress:").pack(side="left")
+        tk.Label(prog_frame, text=lang.tr("progress")).pack(side="left")
         self.progress = ttk.Progressbar(prog_frame, orient="horizontal", length=600, mode="determinate")
         self.progress.pack(side="left", padx=8)
-        self.status_label = tk.Label(prog_frame, text="Idle")
+        self.status_label = tk.Label(prog_frame, text=lang.tr("status_idle"))
         self.status_label.pack(side="left", padx=12)
 
-        # Statistik bawah (buat 1x saja)
-        self.stat_label = tk.Label(p, text="Success: 0 | Fail: 0 | Skipped: 0",
+        self.stat_label = tk.Label(p, text=lang.tr("stat_label", success=0, fail=0, skipped=0),
                                    font=("Arial", 10), fg="white", bg="#333")
         self.stat_label.pack(fill="x", padx=12, pady=(0, 6))
-
-        # # Log area
-        # log_frame = tk.Frame(p)
-        # log_frame.pack(fill="both", expand=True, padx=12, pady=6)
-        # tk.Label(log_frame, text="Log / Preview:").pack(anchor="w")
-        # self.log_text = tk.Text(log_frame)
-        # self.log_text.pack(fill="both", expand=True)
 
     # ---------------------------
     # Navigation helpers
     # ---------------------------
     def _back_to_source(self):
-        # user pressed back from main page -> reset selection and go back to page2
         self.selected_source = None
         self.show_source()
 
@@ -439,7 +399,7 @@ class WATemplateSenderApp(tk.Tk):
     # ---------------------------
     def _browse_file(self):
         self.reset_log()
-        f = filedialog.askopenfilename(filetypes=[("Excel/CSV", "*.xlsx *.xls *.csv")])
+        f = filedialog.askopenfilename(filetypes=[(lang.tr("file_types"), lang.tr("file_types_pattern"))])
         if not f:
             return
         self.excel_path = f
@@ -448,7 +408,6 @@ class WATemplateSenderApp(tk.Tk):
 
         try:
             xls = pd.ExcelFile(f)
-            # Tidak dibatasi — semua sheet akan dimasukkan
             self.sheet_combo['values'] = xls.sheet_names
             messagebox.showinfo("File loaded", f"File loaded. {len(xls.sheet_names)} sheet(s) found.")
         except Exception as e:
@@ -459,23 +418,22 @@ class WATemplateSenderApp(tk.Tk):
     def _load_sheet_from_excel(self):
         self.reset_log()
         if not self.excel_path:
-            messagebox.showwarning("No file", "Pilih file Excel terlebih dulu.")
+            messagebox.showwarning(lang.tr("msg_no_data"), lang.tr("msg_no_file"))
             return
         sheet = self.sheet_combo.get()
         try:
             if sheet:
                 self.df = pd.read_excel(self.excel_path, sheet_name=sheet)
             else:
-                # maybe CSV
                 if self.excel_path.lower().endswith('.csv'):
                     self.df = pd.read_csv(self.excel_path)
                 else:
-                    messagebox.showwarning("No sheet", "Pilih sheet dari dropdown.")
+                    messagebox.showwarning(lang.tr("msg_no_data"), lang.tr("msg_no_sheet"))
                     return
             self._after_load()
             messagebox.showinfo("Loaded", "Data loaded from Excel.")
         except Exception as e:
-            messagebox.showerror("Error", f"Gagal load sheet: {e}")
+            messagebox.showerror("Error", lang.tr("msg_load_sheet_fail", e=e))
 
     # ---------------------------
     # Google Sheets functions
@@ -485,7 +443,7 @@ class WATemplateSenderApp(tk.Tk):
         api = self.entry_api_key.get().strip()
         ss = self.entry_spreadsheet_id.get().strip()
         if not api or not ss:
-            messagebox.showwarning("Missing", "Isi API_KEY dan SPREADSHEET_ID.")
+            messagebox.showwarning(lang.tr("msg_no_data"), lang.tr("msg_missing_api"))
             return
         try:
             url = f"https://sheets.googleapis.com/v4/spreadsheets/{ss}?fields=sheets.properties.title&key={api}"
@@ -496,7 +454,7 @@ class WATemplateSenderApp(tk.Tk):
             self.gs_sheet_combo['values'] = sheets
             messagebox.showinfo("OK", f"Found {len(sheets)} sheets.")
         except Exception as e:
-            messagebox.showerror("Error", f"Gagal ambil sheet list: {e}")
+            messagebox.showerror("Error", lang.tr("msg_fetch_sheets_fail", e=e))
 
     def _load_from_gs(self):
         self.reset_log()
@@ -505,10 +463,9 @@ class WATemplateSenderApp(tk.Tk):
         sheet = self.gs_sheet_combo.get().strip()
 
         if not (api and ss and sheet):
-            messagebox.showwarning("Missing", "Isi API_KEY, SPREADSHEET_ID, dan pilih sheet.")
+            messagebox.showwarning(lang.tr("msg_no_data"), lang.tr("msg_missing_gs"))
             return
 
-        # RANGE AUTO: ambil semua kolom dari sheet
         rng = "A:ZZZ"
 
         try:
@@ -521,10 +478,9 @@ class WATemplateSenderApp(tk.Tk):
 
             vals = js.get("values", [])
             if not vals:
-                messagebox.showwarning("Empty", "Tidak ada data pada sheet tersebut.")
+                messagebox.showwarning(lang.tr("msg_no_data"), lang.tr("msg_no_data_gs"))
                 return
 
-            # Normalisasi panjang tiap baris
             max_len = max(len(row) for row in vals)
             vals = [row + [""] * (max_len - len(row)) for row in vals]
 
@@ -534,9 +490,7 @@ class WATemplateSenderApp(tk.Tk):
             messagebox.showinfo("Loaded", "Data loaded from Google Sheets (all columns).")
 
         except Exception as e:
-            messagebox.showerror("Error", f"Gagal load data: {e}")
-
-
+            messagebox.showerror("Error", lang.tr("msg_load_gs_fail", e=e))
 
     # ---------------------------
     # After loading any source
@@ -544,23 +498,17 @@ class WATemplateSenderApp(tk.Tk):
     def _after_load(self):
         cols = list(self.df.columns)
 
-        # isi dropdown mapping utama
         for cmb in (self.cmb_name, self.cmb_no, self.cmb_addr):
             cmb['values'] = cols
 
-        # isi pilihan KOLOM STATUS saja (bukan nilai)
         self.cmb_status_col['values'] = cols
         self.cmb_status_col.set("")
 
-
-        # reset filter status
         self.filter_status_combo.set("")
         self.filter_status_combo['values'] = []
 
-
         self.log(f"Data loaded. Columns: {cols}")
         self.status_label.config(text="Data loaded")
-        # select sensible defaults
         self._auto_map_cols()
 
     def _on_status_col_selected(self, event=None):
@@ -596,19 +544,16 @@ class WATemplateSenderApp(tk.Tk):
                         return self.df.columns[i]
             return ""
 
-        self.cmb_name.set(find_like(['name','nama','nm']))
-        self.cmb_no.set(find_like(['phone','hp','no','tel']))
-        self.cmb_addr.set(find_like(['alamat','address','addr']))
+        self.cmb_name.set(find_like(['name', 'nama', 'nm']))
+        self.cmb_no.set(find_like(['phone', 'hp', 'no', 'tel']))
+        self.cmb_addr.set(find_like(['address', 'alamat', 'addr']))
 
-        # ISI PILIHAN KOLOM STATUS SAJA
         self.cmb_status_col['values'] = list(self.df.columns)
         self.cmb_status_col.set("")
         self.filter_status_combo.set("")
         self.filter_status_combo['values'] = []
 
-
     def _update_filter_status_options(self):
-        """Mengisi filter_status_combo berdasarkan kolom status yang dipilih."""
         try:
             col = self.cmb_status_col.get()
             if not col or self.df is None:
@@ -619,7 +564,6 @@ class WATemplateSenderApp(tk.Tk):
         except:
             pass
 
-
     # ---------------------------
     # Preview
     # ---------------------------
@@ -627,61 +571,51 @@ class WATemplateSenderApp(tk.Tk):
         self.reset_log()
 
         if self.df is None:
-            messagebox.showwarning("No data", "Load data dulu.")
+            messagebox.showwarning(lang.tr("msg_no_data"), lang.tr("msg_no_valid_send"))
             return
 
         template = self.template_text.get("1.0", tk.END)
         filter_status = self.filter_status_combo.get().strip()
 
-        # Baca batas row dari input user
         row_start = int(self.row_start.get()) if self.row_start.get().strip() else 1
         row_end = int(self.row_end.get()) if self.row_end.get().strip() else len(self.df)
 
-        # Pastikan tidak melebihi batas
         row_start = max(1, row_start)
         row_end = min(len(self.df), row_end)
 
         valid_rows = []
 
-        # Loop hanya dari row_start–row_end
         for i in range(row_start - 1, row_end):
             row = self.df.iloc[i]
             actual_row = i + 1
 
-            # Filter status
             if filter_status:
                 if str(row.get(self.cmb_status_col.get(), "")).strip() != filter_status:
                     continue
 
-            # Validasi nomor HP
             phone = normalize_phone(row.get(self.cmb_no.get(), ""))
             if not phone:
                 continue
 
             valid_rows.append((actual_row, row, phone))
 
-            # Ambil hanya 5 preview
             if len(valid_rows) >= 5:
                 break
 
-        # Tidak ada row valid
         if not valid_rows:
-            self.log("Tidak ada baris valid untuk preview di range tersebut.")
+            self.log(lang.tr("msg_no_valid_preview"))
             return
 
-        # Tampilkan preview
         for actual_row, row, phone in valid_rows:
-            nama = row.get(self.cmb_name.get(), "")
-            alamat = row.get(self.cmb_addr.get(), "")
+            name = row.get(self.cmb_name.get(), "")
+            address = row.get(self.cmb_addr.get(), "")
 
             try:
-                msg = template.format(nama=nama, no_hp=phone, alamat=alamat)
+                msg = template.format(name=name, phone=phone, address=address)
             except:
                 msg = "[Template error]"
 
             self.log(f"Preview row {actual_row} -> {phone}\n{msg}\n")
-
-
 
     # ---------------------------
     # Sending logic
@@ -689,15 +623,14 @@ class WATemplateSenderApp(tk.Tk):
     def _start_sending(self):
         self.reset_log()
         if self.df is None:
-            messagebox.showwarning("No data", "Load data dulu.")
+            messagebox.showwarning(lang.tr("msg_no_data"), lang.tr("msg_no_valid_send"))
             return
         if self.sending_thread and self.sending_thread.is_alive():
-            messagebox.showinfo("Running", "Sending already running.")
+            messagebox.showinfo(lang.tr("msg_sending_running"), lang.tr("msg_sending_running"))
             return
         if not self.cmb_name.get() or not self.cmb_no.get():
-            messagebox.showwarning("Mapping", "Pastikan Kolom Nama dan Kolom No HP terpilih.")
+            messagebox.showwarning(lang.tr("msg_mapping_required"), lang.tr("msg_mapping_required"))
             return
-        # reset stats
         self.success = 0
         self.fail = 0
         self.skipped = 0
@@ -711,11 +644,9 @@ class WATemplateSenderApp(tk.Tk):
             self.stop_event.set()
             self.log("Stop requested...")
         else:
-            self.log("No running process to stop.")
+            self.log(lang.tr("msg_no_process"))
 
-    
     def _send_worker(self):
-        rows_total = len(self.df)
         rows_total = len(self.df)
         try:
             start_idx = int(self.row_start.get()) if self.row_start.get().strip() else 1
@@ -738,12 +669,6 @@ class WATemplateSenderApp(tk.Tk):
         self.log(f"Start sending. Range rows: {start_idx}..{end_idx} | Total: {total_to_process}")
         self.status_label.config(text="Running")
 
-        start_idx = int(self.row_start.get()) if self.row_start.get().strip() else 1
-        end_idx = int(self.row_end.get()) if self.row_end.get().strip() else rows_total
-        start_idx = max(1, start_idx)
-        end_idx = min(rows_total, end_idx)
-
-        # Ambil filter status satu kali
         filter_status_val = ""
         if hasattr(self, "filter_status_combo"):
             try:
@@ -757,74 +682,59 @@ class WATemplateSenderApp(tk.Tk):
             for i in range(start_idx - 1, end_idx):
 
                 if self.stop_event.is_set():
-                    self.log("Stopped by user.")
+                    self.log(lang.tr("msg_stopped"))
                     break
 
                 row = self.df.iloc[i]
                 actual_row = i + 1
 
-                # -------------------------
-                # FILTER STATUS
-                # -------------------------
                 if filter_status_val:
                     row_status = str(row.get(self.cmb_status_col.get(), "")).strip()
                     if row_status != filter_status_val:
                         self.skipped += 1
-                        self.log(f"Row {actual_row} skipped (status mismatch)")
+                        self.log(lang.tr("msg_skipped_status", row=actual_row))
                         self.progress['value'] += 1
                         continue
 
-                # -------------------------
-                # VALIDASI PHONE
-                # -------------------------
                 raw_no = row.get(self.cmb_no.get(), "")
                 phone = normalize_phone(raw_no)
                 if not phone:
                     self.fail += 1
-                    self.log(f"Row {actual_row} fail: invalid phone ({raw_no})")
+                    self.log(lang.tr("msg_fail_invalid_phone", row=actual_row, phone=raw_no))
                     self._update_stats()
                     self.progress['value'] += 1
                     continue
 
-                nama = row.get(self.cmb_name.get(), "")
-                alamat = row.get(self.cmb_addr.get(), "")
+                name = row.get(self.cmb_name.get(), "")
+                address = row.get(self.cmb_addr.get(), "")
                 template = self.template_text.get("1.0", tk.END)
                 try:
-                    pesan = template.format(nama=nama, no_hp=phone, alamat=alamat)
+                    message = template.format(name=name, phone=phone, address=address)
                 except Exception as e:
                     self.fail += 1
-                    self.log(f"Row {actual_row} template error: {e}")
+                    self.log(lang.tr("msg_template_error", row=actual_row, e=e))
                     self._update_stats()
                     self.progress['value'] += 1
                     continue
 
-                # -------------------------
-                # FIRST SEND WAIT FIX
-                # -------------------------
                 if first:
-                    self.log("Preparing WhatsApp Web... waiting 5 seconds...")
+                    self.log(lang.tr("msg_preparing_wa"))
                     time.sleep(5)
                     first = False
 
-                # -------------------------
-                # SEND MESSAGE (SETIAP ITERASI)
-                # -------------------------
-                self.log(f"Sending to {phone} (row {actual_row}) ...")
+                self.log(lang.tr("msg_sending_to", phone=phone, row=actual_row))
 
                 try:
-                    kit.sendwhatmsg_instantly(phone, pesan, wait_time=10, tab_close=True)
+                    kit.sendwhatmsg_instantly(phone, message, wait_time=10, tab_close=True)
                     self.success += 1
-                    self.log(f"Row {actual_row} success -> {phone}")
+                    self.log(lang.tr("msg_success", row=actual_row, phone=phone))
                 except Exception as e:
                     self.fail += 1
-                    self.log(f"Row {actual_row} SEND ERROR: {e}")
+                    self.log(lang.tr("msg_send_error", row=actual_row, e=e))
 
                 self.progress['value'] += 1
                 self._update_stats()
 
-                # -------------------------
-                # DELAY ANTAR PESAN
-                # -------------------------
                 try:
                     dmin = int(self.delay_min.get())
                     dmax = int(self.delay_max.get())
@@ -835,7 +745,7 @@ class WATemplateSenderApp(tk.Tk):
                     dmax = dmin
 
                 delay = random.randint(dmin, dmax)
-                self.log(f"Wait {delay} sec ...")
+                self.log(lang.tr("msg_wait", delay=delay))
 
                 for _ in range(delay):
                     if self.stop_event.is_set():
@@ -847,9 +757,9 @@ class WATemplateSenderApp(tk.Tk):
                     break
 
         finally:
-            self.progress['value'] = self.progress['maximum'] 
-            self.status_label.config(text="Idle")
-            self.log("Sending finished.")
+            self.progress['value'] = self.progress['maximum']
+            self.status_label.config(text=lang.tr("status_idle"))
+            self.log(lang.tr("msg_sending_finished"))
             self._update_stats()
 
             if self.last_page:
@@ -857,10 +767,8 @@ class WATemplateSenderApp(tk.Tk):
                     self.last_page.lift()
                     self.last_page.focus_force()
                     self.attributes('-topmost', True)
-                    self.attributes('-topmost', False)  # reset supaya user bisa klik window lain
+                    self.attributes('-topmost', False)
                 self.after(0, bring_last_page)
-
-
 
     # ---------------------------
     # Helpers
@@ -873,19 +781,16 @@ class WATemplateSenderApp(tk.Tk):
             self.gsheet_frame.grid()
             self.excel_frame.grid_remove()
         self.log_text.delete("1.0", tk.END)
-
-
+        self.source_label.config(text=f"{lang.tr('source')}: {self.selected_source}")
 
     def _update_stats(self):
-        # Thread-safe update (do not recreate widgets here)
         thread_safe_update_label(self, self.stat_label,
-                                 f"Success: {self.success} | Fail: {self.fail} | Skipped: {self.skipped}")
+                                 lang.tr("stat_label", success=self.success, fail=self.fail, skipped=self.skipped))
 
     def log(self, msg):
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
         self.log_text.insert("end", f"[{ts}] {msg}\n")
         self.log_text.see("end")
-    
+
     def reset_log(self):
-        """Clear log setiap kali user menjalankan aksi baru."""
         self.log_text.delete("1.0", tk.END)

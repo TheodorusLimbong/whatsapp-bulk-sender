@@ -1,5 +1,5 @@
-from ui_pages import WATemplateSenderApp
+from ui_pages import WhatsAppBulkSenderApp
 
 if __name__ == "__main__":
-    app = WATemplateSenderApp()
+    app = WhatsAppBulkSenderApp()
     app.mainloop()
