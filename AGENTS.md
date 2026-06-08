@@ -41,6 +41,11 @@ pip install -r requirements.txt
 6. Preview 5 rows, then **Start Sending**.
 7. Sending runs in a background thread; `pywhatkit.sendwhatmsg_instantly()` opens WhatsApp Web in a browser.
 
+## Distribution Strategy
+- **Source code** via git (repo kecil 0.1 MB) — untuk developer
+- **Executable** (.exe) via **GitHub Releases** — untuk user non-teknis
+- .exe tidak di-track di git karena binary besar; user download dari halaman Release
+
 ## Gotchas
 
 - **Sending** requires the user to be logged into **WhatsApp Web** in the default browser.

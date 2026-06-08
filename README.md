@@ -54,6 +54,13 @@ python main.py
 
 > **Important**: You must be logged into **WhatsApp Web** (`https://web.whatsapp.com`) in your default browser before sending.
 
+## Download Executable (No Python Required)
+
+Non-technical users can download the pre-built `.exe` from the **Releases** page:
+https://github.com/TheodorusLimbong/whatsapp-bulk-sender/releases
+
+Just download `WhatsAppBulkSender.exe` and double-click to run.
+
 ## Building Executable (PyInstaller)
 
 ```bash
@@ -61,7 +68,9 @@ pip install pyinstaller
 pyinstaller WhatsAppBulkSender.spec
 ```
 
-The executable will be created in the `dist/` directory.
+The executable will be created in `dist/WhatsAppBulkSender.exe`.
+
+> **Note**: The `.exe` is not tracked in git (too large for version control). It's distributed via GitHub Releases instead.
 
 ## Project Structure
 
